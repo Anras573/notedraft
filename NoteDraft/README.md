@@ -23,6 +23,11 @@ NoteDraft/
 ├── NoteDraft/
 │   ├── NoteDraftApp.swift     # App entry point
 │   ├── ContentView.swift      # Main view (placeholder)
+│   ├── Models/
+│   │   ├── Notebook.swift     # Notebook data model
+│   │   └── Page.swift         # Page data model
+│   ├── Persistence/
+│   │   └── DataStore.swift    # FileManager-based persistence
 │   ├── Info.plist             # iPad-only configuration
 │   └── Assets.xcassets/       # App icons and colors
 └── NoteDraft.xcodeproj/       # Xcode project files
@@ -51,8 +56,8 @@ This project follows **spec-driven development**. All implementations must align
 
 Phase 1 - Project Setup:
 - ✅ iPad-only SwiftUI App scaffolding
-- ⏳ Data models (Notebook, Page)
-- ⏳ Local persistence with FileManager
+- ✅ Data models (Notebook, Page)
+- ✅ Local persistence with FileManager
 
 Phase 2 - UI Structure:
 - ⏳ NotebookListView
