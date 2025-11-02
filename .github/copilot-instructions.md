@@ -85,7 +85,7 @@ NoteDraft/
 
 ### Testing Changes
 - After implementing a feature, build and run in the simulator
-- Test with Apple Pencil simulation (Cmd+Shift+M for pointer mode)
+- Test with Apple Pencil simulation (⇧⌘M for pointer mode)
 - Check persistence by closing and reopening the app
 - Verify orientation changes (portrait/landscape)
 
