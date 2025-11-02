@@ -68,6 +68,8 @@ class DataStore: ObservableObject {
         if let index = notebooks.firstIndex(where: { $0.id == notebook.id }) {
             notebooks[index] = notebook
             saveNotebooks()
+        } else {
+            print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
         }
     }
     
