@@ -132,7 +132,8 @@ Since this is a minimal MVP, focus on manual testing:
 5. **Orientation test**: Rotate device and verify layout adapts
 
 No unit tests are required initially, but if added:
-- Place in `NoteDraftTests/`
+- Create a `NoteDraftTests/` directory (not included in current structure)
+- Place test files in `NoteDraftTests/`
 - Test model encoding/decoding
 - Test view model state changes
 
