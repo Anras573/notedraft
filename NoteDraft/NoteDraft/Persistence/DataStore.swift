@@ -17,7 +17,10 @@ class DataStore: ObservableObject {
     
     init() {
         // Get the documents directory
-        self.documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        guard let documentsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            fatalError("Unable to locate the documents directory. The app cannot function without it.")
+        }
+        self.documentsDirectory = documentsURL
         
         // Load existing notebooks
         loadNotebooks()
