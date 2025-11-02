@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 class DataStore: ObservableObject {
     @Published var notebooks: [Notebook] = []
