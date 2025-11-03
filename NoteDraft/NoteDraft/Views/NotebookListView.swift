@@ -106,10 +106,11 @@ struct NotebookListView: View {
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Save") {
-                                viewModel.renameNotebook(notebook, newName: renameText)
+                                let trimmedName = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                viewModel.renameNotebook(notebook, newName: trimmedName)
                                 notebookToRename = nil
                             }
-                        }
+                            .disabled(renameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     }
                 }
                 .presentationDetents([.medium])
