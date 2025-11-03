@@ -22,7 +22,7 @@ struct NotebookListView: View {
         NavigationStack {
             List {
                 ForEach(viewModel.notebooks) { notebook in
-                    NavigationLink(destination: Text("Notebook: \(notebook.name)")) {
+                    NavigationLink(destination: NotebookView(notebook: notebook, dataStore: viewModel.dataStore)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(notebook.name)
                                 .font(.headline)

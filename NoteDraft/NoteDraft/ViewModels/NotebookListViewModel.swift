@@ -11,7 +11,7 @@ import Combine
 class NotebookListViewModel: ObservableObject {
     @Published var notebooks: [Notebook] = []
     
-    private let dataStore: DataStore
+    let dataStore: DataStore
     private var cancellables = Set<AnyCancellable>()
     
     init(dataStore: DataStore) {
