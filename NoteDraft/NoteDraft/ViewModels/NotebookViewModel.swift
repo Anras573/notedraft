@@ -42,7 +42,9 @@ class NotebookViewModel: ObservableObject {
     
     func updatePageTitle(_ page: Page, newTitle: String) {
         if let index = notebook.pages.firstIndex(where: { $0.id == page.id }) {
-            notebook.pages[index].title = newTitle
+            let trimmedTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let finalTitle = trimmedTitle.isEmpty ? page.title : trimmedTitle
+            notebook.pages[index].title = finalTitle
             saveNotebook()
         }
     }
