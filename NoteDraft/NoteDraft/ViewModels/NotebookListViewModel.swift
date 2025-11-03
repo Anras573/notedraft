@@ -32,8 +32,10 @@ class NotebookListViewModel: ObservableObject {
     }
     
     func renameNotebook(_ notebook: Notebook, newName: String) {
+        let trimmedName = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmedName.isEmpty ? "Untitled Notebook" : trimmedName
         var updatedNotebook = notebook
-        updatedNotebook.name = newName
+        updatedNotebook.name = finalName
         dataStore.updateNotebook(updatedNotebook)
     }
 }
