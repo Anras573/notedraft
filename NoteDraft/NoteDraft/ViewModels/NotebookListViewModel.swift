@@ -23,7 +23,9 @@ class NotebookListViewModel: ObservableObject {
     }
     
     func addNotebook(name: String) {
-        let notebook = Notebook(name: name.isEmpty ? "Untitled Notebook" : name, pages: [])
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = trimmedName.isEmpty ? "Untitled Notebook" : trimmedName
+        let notebook = Notebook(name: finalName, pages: [])
         dataStore.addNotebook(notebook)
     }
     

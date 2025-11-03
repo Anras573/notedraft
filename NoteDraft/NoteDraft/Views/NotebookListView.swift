@@ -53,7 +53,7 @@ struct NotebookListView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        newNotebookName = ""
+                        newNotebookName = "Untitled Notebook"
                         isShowingAddSheet = true
                     } label: {
                         Label("New Notebook", systemImage: "plus")
