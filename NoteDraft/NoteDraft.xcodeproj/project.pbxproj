@@ -7,12 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8E62203A22824C09BD0352D9 /* Notebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655F69F912BD48BD94789515 /* Notebook.swift */; };
+		5D023ECF7D124AA8BE2A971C /* Page.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B6E03ED33947F293CC98EB /* Page.swift */; };
+		18CAF82B89CC423BB5F6F66A /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D26ABDEA9EB4FA8BF8E1DBE /* DataStore.swift */; };
+		CEF33E66DAEB4867B753BD30 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4037E1BC556B477BB2187FEB /* NotebookListView.swift */; };
+		65103AE04DE74EF9AC5CB34A /* NotebookListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */; };
 		1A0000010000000000000001 /* NoteDraftApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000020000000000000001 /* NoteDraftApp.swift */; };
 		1A0000030000000000000001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000040000000000000001 /* ContentView.swift */; };
 		1A0000050000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000060000000000000001 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		655F69F912BD48BD94789515 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
+		47B6E03ED33947F293CC98EB /* Page.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Page.swift; sourceTree = "<group>"; };
+		3D26ABDEA9EB4FA8BF8E1DBE /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
+		4037E1BC556B477BB2187FEB /* NotebookListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListView.swift; sourceTree = "<group>"; };
+		2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListViewModel.swift; sourceTree = "<group>"; };
 		1A0000000000000000000001 /* NoteDraft.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NoteDraft.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000020000000000000001 /* NoteDraftApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteDraftApp.swift; sourceTree = "<group>"; };
 		1A0000040000000000000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -46,8 +56,45 @@
 				1A0000040000000000000001 /* ContentView.swift */,
 				1A0000060000000000000001 /* Assets.xcassets */,
 				1A0000070000000000000001 /* Info.plist */,
+				212D0AC1EBDF4484980DBCEB /* Models */,
+				E48CD2A371B045C5A5FC8EDC /* Persistence */,
+				A10FF61C281A4E58ABD84E80 /* Views */,
+				50A86D3BC63B49F68C86A0D3 /* ViewModels */,
 			);
 			path = NoteDraft;
+			sourceTree = "<group>";
+		};
+		212D0AC1EBDF4484980DBCEB /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				655F69F912BD48BD94789515 /* Notebook.swift */,
+				47B6E03ED33947F293CC98EB /* Page.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E48CD2A371B045C5A5FC8EDC /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				3D26ABDEA9EB4FA8BF8E1DBE /* DataStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		A10FF61C281A4E58ABD84E80 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				4037E1BC556B477BB2187FEB /* NotebookListView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		50A86D3BC63B49F68C86A0D3 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */,
+			);
+			path = ViewModels;
 			sourceTree = "<group>";
 		};
 		1A00000B0000000000000001 /* Products */ = {
@@ -129,6 +176,11 @@
 			files = (
 				1A0000030000000000000001 /* ContentView.swift in Sources */,
 				1A0000010000000000000001 /* NoteDraftApp.swift in Sources */,
+				8E62203A22824C09BD0352D9 /* Notebook.swift in Sources */,
+				5D023ECF7D124AA8BE2A971C /* Page.swift in Sources */,
+				18CAF82B89CC423BB5F6F66A /* DataStore.swift in Sources */,
+				CEF33E66DAEB4867B753BD30 /* NotebookListView.swift in Sources */,
+				65103AE04DE74EF9AC5CB34A /* NotebookListViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
