@@ -15,7 +15,7 @@ This project follows a **spec-driven development** approach — all code must al
 
 2. **Page Management**
    - Add, remove, and reorder pages.
-   - Each page has its own title, background, and drawing.
+   - Each page has its own background and drawing.
 
 3. **Drawing and Writing**
    - Use Apple Pencil (PencilKit) for freehand drawing.
@@ -49,7 +49,6 @@ struct Notebook: Identifiable, Codable {
 
 struct Page: Identifiable, Codable {
     let id: UUID
-    var title: String
     var backgroundImage: String?
     var drawingData: Data?
 }

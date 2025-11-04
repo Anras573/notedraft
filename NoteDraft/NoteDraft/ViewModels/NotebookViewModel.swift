@@ -25,7 +25,7 @@ class NotebookViewModel: ObservableObject {
     }
     
     func addPage() {
-        let newPage = Page(title: "Page \(notebook.pages.count + 1)")
+        let newPage = Page()
         notebook.pages.append(newPage)
         saveNotebook()
     }
@@ -38,15 +38,6 @@ class NotebookViewModel: ObservableObject {
     func reorderPages(from source: IndexSet, to destination: Int) {
         notebook.pages.move(fromOffsets: source, toOffset: destination)
         saveNotebook()
-    }
-    
-    func updatePageTitle(_ page: Page, newTitle: String) {
-        if let index = notebook.pages.firstIndex(where: { $0.id == page.id }) {
-            let trimmedTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            let finalTitle = trimmedTitle.isEmpty ? page.title : trimmedTitle
-            notebook.pages[index].title = finalTitle
-            saveNotebook()
-        }
     }
     
     private func saveNotebook() {
