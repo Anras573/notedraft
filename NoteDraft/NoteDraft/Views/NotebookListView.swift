@@ -22,7 +22,7 @@ struct NotebookListView: View {
         NavigationStack {
             List {
                 ForEach(viewModel.notebooks) { notebook in
-                    NavigationLink(destination: NotebookView(notebook: notebook, dataStore: viewModel.dataStore)) {
+                    NavigationLink(destination: NotebookView(viewModel: viewModel.createNotebookViewModel(for: notebook))) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(notebook.name)
                                 .font(.headline)
@@ -111,6 +111,7 @@ struct NotebookListView: View {
                                 notebookToRename = nil
                             }
                             .disabled(renameText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
                     }
                 }
                 .presentationDetents([.medium])

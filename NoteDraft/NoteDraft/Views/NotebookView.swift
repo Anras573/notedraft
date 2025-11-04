@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct NotebookView: View {
-    @StateObject private var viewModel: NotebookViewModel
+    @ObservedObject var viewModel: NotebookViewModel
     
-    init(notebook: Notebook, dataStore: DataStore) {
-        _viewModel = StateObject(wrappedValue: NotebookViewModel(notebook: notebook, dataStore: dataStore))
+    init(viewModel: NotebookViewModel) {
+        self.viewModel = viewModel
     }
     
     var body: some View {
@@ -59,8 +59,9 @@ struct NotebookView: View {
         Page()
     ])
     dataStore.addNotebook(notebook)
+    let viewModel = NotebookViewModel(notebook: notebook, dataStore: dataStore)
     
     return NavigationStack {
-        NotebookView(notebook: notebook, dataStore: dataStore)
+        NotebookView(viewModel: viewModel)
     }
 }

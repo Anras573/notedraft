@@ -11,7 +11,7 @@ import Combine
 class NotebookListViewModel: ObservableObject {
     @Published var notebooks: [Notebook] = []
     
-    let dataStore: DataStore
+    private let dataStore: DataStore
     private var cancellables = Set<AnyCancellable>()
     
     init(dataStore: DataStore) {
@@ -39,5 +39,9 @@ class NotebookListViewModel: ObservableObject {
         var updatedNotebook = notebook
         updatedNotebook.name = finalName
         dataStore.updateNotebook(updatedNotebook)
+    }
+    
+    func createNotebookViewModel(for notebook: Notebook) -> NotebookViewModel {
+        return NotebookViewModel(notebook: notebook, dataStore: dataStore)
     }
 }

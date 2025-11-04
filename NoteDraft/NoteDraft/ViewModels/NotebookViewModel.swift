@@ -21,7 +21,10 @@ class NotebookViewModel: ObservableObject {
         // Subscribe to dataStore's notebooks changes to keep this notebook in sync
         dataStore.$notebooks
             .compactMap { notebooks in notebooks.first(where: { $0.id == notebook.id }) }
-            .assign(to: &$notebook)
+            .sink { [weak self] updatedNotebook in
+                self?.notebook = updatedNotebook
+            }
+            .store(in: &cancellables)
     }
     
     func addPage() {
