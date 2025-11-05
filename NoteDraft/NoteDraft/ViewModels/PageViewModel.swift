@@ -12,6 +12,7 @@ import Combine
 class PageViewModel: ObservableObject {
     @Published var page: Page
     @Published var drawing: PKDrawing
+    @Published var selectedBackgroundType: BackgroundType
     
     private let notebookId: UUID
     private let dataStore: DataStore
@@ -20,6 +21,7 @@ class PageViewModel: ObservableObject {
         self.page = page
         self.notebookId = notebookId
         self.dataStore = dataStore
+        self.selectedBackgroundType = page.backgroundType
         
         // Load existing drawing if available
         if let drawingData = page.drawingData {
@@ -29,10 +31,19 @@ class PageViewModel: ObservableObject {
         }
     }
     
+    func setBackgroundType(_ type: BackgroundType) {
+        selectedBackgroundType = type
+        page.backgroundType = type
+        saveChanges()
+    }
+    
     func saveDrawing() {
         // Update page with current drawing data
         page.drawingData = drawing.dataRepresentation()
-        
+        saveChanges()
+    }
+    
+    private func saveChanges() {
         // Fetch the current notebook from DataStore to avoid stale data
         guard let currentNotebook = dataStore.notebooks.first(where: { $0.id == notebookId }) else {
             print("Warning: Notebook with id \(notebookId) not found in DataStore")
