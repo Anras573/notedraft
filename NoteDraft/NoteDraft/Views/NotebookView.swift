@@ -17,7 +17,7 @@ struct NotebookView: View {
     var body: some View {
         List {
             ForEach(Array(viewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
-                NavigationLink(destination: Text("Page \(index + 1)")) {
+                NavigationLink(destination: PageView(viewModel: viewModel.createPageViewModel(for: page))) {
                     Text("Page \(index + 1)")
                         .font(.headline)
                         .padding(.vertical, 4)
