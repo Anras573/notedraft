@@ -21,16 +21,25 @@ A minimalistic note-taking app for iPad built with SwiftUI and PencilKit.
 ```
 NoteDraft/
 ├── NoteDraft/
-│   ├── NoteDraftApp.swift     # App entry point
-│   ├── ContentView.swift      # Main view (placeholder)
+│   ├── NoteDraftApp.swift        # App entry point
+│   ├── ContentView.swift         # Main view (placeholder)
 │   ├── Models/
-│   │   ├── Notebook.swift     # Notebook data model
-│   │   └── Page.swift         # Page data model
+│   │   ├── Notebook.swift        # Notebook data model
+│   │   └── Page.swift            # Page data model
+│   ├── ViewModels/
+│   │   ├── NotebookListViewModel.swift   # Notebook list state management
+│   │   ├── NotebookViewModel.swift       # Single notebook state management
+│   │   └── PageViewModel.swift           # Page drawing state management
+│   ├── Views/
+│   │   ├── NotebookListView.swift    # List of notebooks
+│   │   ├── NotebookView.swift        # Page list within a notebook
+│   │   ├── PageView.swift            # Drawing page view
+│   │   └── CanvasView.swift          # PencilKit canvas wrapper
 │   ├── Persistence/
-│   │   └── DataStore.swift    # FileManager-based persistence
-│   ├── Info.plist             # iPad-only configuration
-│   └── Assets.xcassets/       # App icons and colors
-└── NoteDraft.xcodeproj/       # Xcode project files
+│   │   └── DataStore.swift       # FileManager-based persistence
+│   ├── Info.plist                # iPad-only configuration
+│   └── Assets.xcassets/          # App icons and colors
+└── NoteDraft.xcodeproj/          # Xcode project files
 ```
 
 ## Development
@@ -52,7 +61,7 @@ This project follows **spec-driven development**. All implementations must align
 - **Targeted Device Family**: iPad (2)
 - **Supported Orientations**: All (Portrait, Landscape)
 
-## Features (Planned)
+## Features
 
 Phase 1 - Project Setup:
 - ✅ iPad-only SwiftUI App scaffolding
@@ -60,17 +69,17 @@ Phase 1 - Project Setup:
 - ✅ Local persistence with FileManager
 
 Phase 2 - UI Structure:
-- ⏳ NotebookListView
-- ⏳ NotebookView with page management
-- ⏳ PageView with PencilKit canvas
+- ✅ NotebookListView with add/delete/rename functionality
+- ✅ NotebookView with page management (add/delete/reorder)
+- ✅ PageView with PencilKit canvas
 
 Phase 3 - Drawing & Backgrounds:
-- ⏳ PencilKit integration
-- ⏳ Background selection (grid, lined, blank, custom)
+- ✅ PencilKit integration with CanvasView wrapper
+- ⏳ Background selection UI (grid, lined, blank, custom)
 
 Phase 4 - Polish & Testing:
-- ⏳ Undo/redo support
-- ⏳ Auto-save functionality
+- ✅ Undo/redo support
+- ✅ Auto-save functionality
 - ⏳ Full user story coverage
 
 ## License
