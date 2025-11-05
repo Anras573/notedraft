@@ -43,6 +43,10 @@ class NotebookViewModel: ObservableObject {
         saveNotebook()
     }
     
+    func createPageViewModel(for page: Page) -> PageViewModel {
+        return PageViewModel(page: page, notebookId: notebook.id, dataStore: dataStore)
+    }
+    
     private func saveNotebook() {
         dataStore.updateNotebook(notebook)
     }

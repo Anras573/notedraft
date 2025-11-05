@@ -1,0 +1,49 @@
+//
+//  PageViewModel.swift
+//  NoteDraft
+//
+//  Created by Copilot
+//
+
+import Foundation
+import PencilKit
+import Combine
+
+class PageViewModel: ObservableObject {
+    @Published var page: Page
+    @Published var drawing: PKDrawing
+    
+    private let notebookId: UUID
+    private let dataStore: DataStore
+    
+    init(page: Page, notebookId: UUID, dataStore: DataStore) {
+        self.page = page
+        self.notebookId = notebookId
+        self.dataStore = dataStore
+        
+        // Load existing drawing if available
+        if let drawingData = page.drawingData {
+            self.drawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
+        } else {
+            self.drawing = PKDrawing()
+        }
+    }
+    
+    func saveDrawing() {
+        // Update page with current drawing data
+        page.drawingData = drawing.dataRepresentation()
+        
+        // Fetch the current notebook from DataStore to avoid stale data
+        guard let currentNotebook = dataStore.notebooks.first(where: { $0.id == notebookId }) else {
+            print("Warning: Notebook with id \(notebookId) not found in DataStore")
+            return
+        }
+        
+        // Find and update the notebook with the modified page
+        var updatedNotebook = currentNotebook
+        if let pageIndex = updatedNotebook.pages.firstIndex(where: { $0.id == page.id }) {
+            updatedNotebook.pages[pageIndex] = page
+            dataStore.updateNotebook(updatedNotebook)
+        }
+    }
+}
