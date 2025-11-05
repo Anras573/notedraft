@@ -59,7 +59,7 @@ struct PageView: View {
     let notebook = Notebook(name: "My Notebook", pages: [Page()])
     dataStore.addNotebook(notebook)
     let page = notebook.pages[0]
-    let viewModel = PageViewModel(page: page, notebook: notebook, dataStore: dataStore)
+    let viewModel = PageViewModel(page: page, notebookId: notebook.id, dataStore: dataStore)
     
     return NavigationStack {
         PageView(viewModel: viewModel)
