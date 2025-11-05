@@ -32,8 +32,12 @@ struct BackgroundView: View {
                     if let imageName = customImageName {
                         Image(imageName)
                             .resizable()
-                            .scaledToFill()
+                            .scaledToFit()
                             .opacity(0.3)
+                            .clipped()
+                    } else {
+                        // Fallback to blank if no custom image specified
+                        EmptyView()
                     }
                 }
             }
