@@ -40,4 +40,8 @@ class NotebookListViewModel: ObservableObject {
         updatedNotebook.name = finalName
         dataStore.updateNotebook(updatedNotebook)
     }
+    
+    func createNotebookViewModel(for notebook: Notebook) -> NotebookViewModel {
+        return NotebookViewModel(notebook: notebook, dataStore: dataStore)
+    }
 }
