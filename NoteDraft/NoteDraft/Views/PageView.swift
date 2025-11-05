@@ -19,9 +19,11 @@ struct PageView: View {
     
     var body: some View {
         ZStack {
-            // Background color
-            Color.white
-                .ignoresSafeArea()
+            // Background
+            BackgroundView(
+                backgroundType: viewModel.selectedBackgroundType,
+                customImageName: viewModel.page.backgroundImage
+            )
             
             // Canvas for drawing
             CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
@@ -29,6 +31,25 @@ struct PageView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Menu {
+                    ForEach(BackgroundType.allCases) { type in
+                        Button {
+                            viewModel.setBackgroundType(type)
+                        } label: {
+                            HStack {
+                                Text(type.displayName)
+                                if viewModel.selectedBackgroundType == type {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "photo.on.rectangle")
+                }
+            }
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     canvasView.undoManager?.undo()
