@@ -75,12 +75,12 @@ Phase 2 - UI Structure:
 
 Phase 3 - Drawing & Backgrounds:
 - ✅ PencilKit integration with CanvasView wrapper
-- ⏳ Background selection UI (grid, lined, blank, custom)
+- ✅ Background selection UI (grid, lined, blank, custom)
 
 Phase 4 - Polish & Testing:
 - ✅ Undo/redo support
 - ✅ Auto-save functionality
-- ⏳ Full user story coverage
+- ✅ Full user story coverage
 
 ## License
 
