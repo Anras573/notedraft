@@ -10,7 +10,6 @@ import PencilKit
 
 struct ContinuousPageView: View {
     @ObservedObject var viewModel: ContinuousPageViewModel
-    @State private var currentPageIndex: Int = 0
     
     var body: some View {
         GeometryReader { geometry in
@@ -18,8 +17,7 @@ struct ContinuousPageView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(viewModel.pages.enumerated()), id: \.element.id) { index, page in
                         PageContentView(
-                            viewModel: viewModel.createPageViewModel(for: page),
-                            pageNumber: index + 1
+                            viewModel: viewModel.createPageViewModel(for: page)
                         )
                         .frame(height: geometry.size.height)
                         
@@ -52,7 +50,6 @@ struct PageDivider: View {
 
 struct PageContentView: View {
     @ObservedObject var viewModel: PageViewModel
-    let pageNumber: Int
     @State private var canvasView = PKCanvasView()
     
     var body: some View {
