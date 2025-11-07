@@ -139,7 +139,7 @@ struct PageDivider: View {
     var body: some View {
         VStack(spacing: 4) {
             Divider()
-            Text("Page \(pageNumber + 1)")
+            Text("Page \(pageNumber)")
                 .font(.caption)
                 .foregroundColor(.secondary)
             Divider()
