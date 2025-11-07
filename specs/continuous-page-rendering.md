@@ -114,17 +114,19 @@ struct ContinuousPageView: View {
     @State private var currentPageIndex: Int = 0
     
     var body: some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(viewModel.pages.enumerated()), id: \.element.id) { index, page in
-                    PageContentView(
-                        viewModel: viewModel.createPageViewModel(for: page),
-                        pageNumber: index + 1
-                    )
-                    .frame(height: UIScreen.main.bounds.height)
-                    
-                    if index < viewModel.pages.count - 1 {
-                        PageDivider(pageNumber: index + 1)
+        GeometryReader { geometry in
+            ScrollView(.vertical) {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(viewModel.pages.enumerated()), id: \.element.id) { index, page in
+                        PageContentView(
+                            viewModel: viewModel.createPageViewModel(for: page),
+                            pageNumber: index + 1
+                        )
+                        .frame(height: geometry.size.height)
+                        
+                        if index < viewModel.pages.count - 1 {
+                            PageDivider(pageNumber: index + 1)
+                        }
                     }
                 }
             }
@@ -139,7 +141,7 @@ struct PageDivider: View {
     var body: some View {
         VStack(spacing: 4) {
             Divider()
-            Text("Page \(pageNumber)")
+            Text("End of Page \(pageNumber)")
                 .font(.caption)
                 .foregroundColor(.secondary)
             Divider()
@@ -266,7 +268,7 @@ struct PageDivider: View {
 - No performance degradation with up to 20 pages
 - Drawing functionality remains fully intact
 - Mode switching is intuitive and reliable
-- Memory usage stays within acceptable limits (< 500MB for 10 pages)
+- Memory usage stays within acceptable limits (< 300MB for 10 pages)
 
 ---
 
