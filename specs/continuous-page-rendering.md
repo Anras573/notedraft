@@ -103,6 +103,9 @@ The continuous page rendering feature addresses this by allowing users to scroll
   - Tracks current page index
   - Provides page navigation methods
   - Handles lazy loading of page data
+  
+  **Methods:**
+  - `createPageViewModel(for page: Page) -> PageViewModel`: Creates a PageViewModel instance for a specific page, maintaining the connection to the data store and notebook ID
 
 ### Data Model
 No changes to existing `Page` or `Notebook` models required.
