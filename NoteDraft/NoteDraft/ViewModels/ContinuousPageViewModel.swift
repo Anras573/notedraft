@@ -8,6 +8,8 @@
 import Foundation
 import Combine
 
+/// View model that manages the state for continuous page rendering in a notebook.
+/// Keeps the list of pages synchronized with the data store and provides page-specific view models.
 class ContinuousPageViewModel: ObservableObject {
     @Published var pages: [Page]
     let notebookName: String
