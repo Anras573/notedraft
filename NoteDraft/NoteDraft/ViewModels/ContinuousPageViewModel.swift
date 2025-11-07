@@ -1,0 +1,38 @@
+//
+//  ContinuousPageViewModel.swift
+//  NoteDraft
+//
+//  Created by Copilot
+//
+
+import Foundation
+import Combine
+
+class ContinuousPageViewModel: ObservableObject {
+    @Published var pages: [Page]
+    let notebookName: String
+    let notebookId: UUID
+    
+    private let dataStore: DataStore
+    private var cancellables = Set<AnyCancellable>()
+    
+    init(notebook: Notebook, dataStore: DataStore) {
+        self.pages = notebook.pages
+        self.notebookName = notebook.name
+        self.notebookId = notebook.id
+        self.dataStore = dataStore
+        
+        // Subscribe to dataStore's notebooks changes to keep pages in sync
+        dataStore.$notebooks
+            .compactMap { notebooks in notebooks.first(where: { $0.id == notebook.id }) }
+            .sink { [weak self] updatedNotebook in
+                self?.pages = updatedNotebook.pages
+            }
+            .store(in: &cancellables)
+    }
+    
+    /// Creates a PageViewModel instance for a specific page, maintaining the connection to the data store and notebook ID
+    func createPageViewModel(for page: Page) -> PageViewModel {
+        return PageViewModel(page: page, notebookId: notebookId, dataStore: dataStore)
+    }
+}

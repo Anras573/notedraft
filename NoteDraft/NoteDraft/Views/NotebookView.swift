@@ -36,6 +36,12 @@ struct NotebookView: View {
         }
         .navigationTitle(viewModel.notebook.name)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink(destination: ContinuousPageView(viewModel: viewModel.createContinuousPageViewModel())) {
+                    Label("Continuous View", systemImage: "doc.text.below.ecg")
+                }
+            }
+            
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     viewModel.addPage()
