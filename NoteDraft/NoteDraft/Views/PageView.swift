@@ -18,17 +18,7 @@ struct PageView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Background
-            BackgroundView(
-                backgroundType: viewModel.selectedBackgroundType,
-                customImageName: viewModel.page.backgroundImage
-            )
-            
-            // Canvas for drawing
-            CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
-                .ignoresSafeArea(edges: .bottom)
-        }
+        PageCanvasContent(viewModel: viewModel, canvasView: $canvasView)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

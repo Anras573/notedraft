@@ -47,6 +47,10 @@ class NotebookViewModel: ObservableObject {
         return PageViewModel(page: page, notebookId: notebook.id, dataStore: dataStore)
     }
     
+    func createContinuousPageViewModel() -> ContinuousPageViewModel {
+        return ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
+    }
+    
     private func saveNotebook() {
         dataStore.updateNotebook(notebook)
     }

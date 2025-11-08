@@ -20,6 +20,10 @@
 		B3A3A3A3A3A3A3A3A3A3A3A3 /* PageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */; };
 		B4A4A4A4A4A4A4A4A4A4A4A4 /* PageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B4B4B4B4B4B4B4B4B4B4B4 /* PageViewModel.swift */; };
 		B5A5A5A5A5A5A5A5A5A5A5A5 /* CanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */; };
+		B6A6A6A6A6A6A6A6A6A6A6A6 /* ContinuousPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */; };
+		B7A7A7A7A7A7A7A7A7A7A7A7 /* ContinuousPageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7B7B7B7B7B7B7B7B7B7B7B7 /* ContinuousPageViewModel.swift */; };
+		B8A8A8A8A8A8A8A8A8A8A8A8 /* BackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B8B8B8B8B8B8B8B8B8B8B8 /* BackgroundView.swift */; };
+		B9A9A9A9A9A9A9A9A9A9A9A9 /* BackgroundType.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B9B9B9B9B9B9B9B9B9B9B9 /* BackgroundType.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +42,10 @@
 		B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageView.swift; sourceTree = "<group>"; };
 		B4B4B4B4B4B4B4B4B4B4B4B4 /* PageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageViewModel.swift; sourceTree = "<group>"; };
 		B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasView.swift; sourceTree = "<group>"; };
+		B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousPageView.swift; sourceTree = "<group>"; };
+		B7B7B7B7B7B7B7B7B7B7B7B7 /* ContinuousPageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousPageViewModel.swift; sourceTree = "<group>"; };
+		B8B8B8B8B8B8B8B8B8B8B8B8 /* BackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundView.swift; sourceTree = "<group>"; };
+		B9B9B9B9B9B9B9B9B9B9B9B9 /* BackgroundType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundType.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -79,6 +87,7 @@
 			children = (
 				655F69F912BD48BD94789515 /* Notebook.swift */,
 				47B6E03ED33947F293CC98EB /* Page.swift */,
+				B9B9B9B9B9B9B9B9B9B9B9B9 /* BackgroundType.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -98,6 +107,8 @@
 				B1B1B1B1B1B1B1B1B1B1B1B1 /* NotebookView.swift */,
 				B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */,
 				B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */,
+				B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */,
+				B8B8B8B8B8B8B8B8B8B8B8B8 /* BackgroundView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -108,6 +119,7 @@
 				2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */,
 				B2B2B2B2B2B2B2B2B2B2B2B2 /* NotebookViewModel.swift */,
 				B4B4B4B4B4B4B4B4B4B4B4B4 /* PageViewModel.swift */,
+				B7B7B7B7B7B7B7B7B7B7B7B7 /* ContinuousPageViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -201,6 +213,10 @@
 				B3A3A3A3A3A3A3A3A3A3A3A3 /* PageView.swift in Sources */,
 				B4A4A4A4A4A4A4A4A4A4A4A4 /* PageViewModel.swift in Sources */,
 				B5A5A5A5A5A5A5A5A5A5A5A5 /* CanvasView.swift in Sources */,
+				B6A6A6A6A6A6A6A6A6A6A6A6 /* ContinuousPageView.swift in Sources */,
+				B7A7A7A7A7A7A7A7A7A7A7A7 /* ContinuousPageViewModel.swift in Sources */,
+				B8A8A8A8A8A8A8A8A8A8A8A8 /* BackgroundView.swift in Sources */,
+				B9A9A9A9A9A9A9A9A9A9A9A9 /* BackgroundType.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
