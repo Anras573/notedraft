@@ -15,30 +15,25 @@ struct NotebookView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(Array(viewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
-                NavigationLink(destination: PageView(viewModel: viewModel.createPageViewModel(for: page))) {
-                    Text("Page \(index + 1)")
-                        .font(.headline)
-                        .padding(.vertical, 4)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        viewModel.deletePage(page)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-            }
-            .onMove { source, destination in
-                viewModel.reorderPages(from: source, to: destination)
+        Group {
+            if viewModel.isContinuousViewMode {
+                ContinuousPageView(viewModel: viewModel.createContinuousPageViewModel())
+            } else {
+                listView
             }
         }
         .navigationTitle(viewModel.notebook.name)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                NavigationLink(destination: ContinuousPageView(viewModel: viewModel.createContinuousPageViewModel())) {
-                    Label("Continuous View", systemImage: "doc.text.below.ecg")
+                Button {
+                    withAnimation {
+                        viewModel.toggleViewMode()
+                    }
+                } label: {
+                    Label(
+                        viewModel.isContinuousViewMode ? "List View" : "Continuous View",
+                        systemImage: viewModel.isContinuousViewMode ? "list.bullet" : "doc.text.below.ecg"
+                    )
                 }
             }
             
@@ -50,8 +45,36 @@ struct NotebookView: View {
                 }
             }
             
-            ToolbarItem(placement: .topBarTrailing) {
-                EditButton()
+            if !viewModel.isContinuousViewMode {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
+                }
+            }
+        }
+    }
+    
+    private var listView: some View {
+        List {
+            ForEach(Array(viewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
+                NavigationLink(destination: PageView(viewModel: viewModel.createPageViewModel(for: page))) {
+                    Text("Page \(index + 1)")
+                        .font(.headline)
+                        .padding(.vertical, 4)
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    // Track which page the user navigated to
+                    viewModel.setCurrentPageIndex(index)
+                })
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        viewModel.deletePage(page)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+            .onMove { source, destination in
+                viewModel.reorderPages(from: source, to: destination)
             }
         }
     }

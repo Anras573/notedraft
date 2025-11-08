@@ -10,6 +10,8 @@ import Combine
 
 class NotebookViewModel: ObservableObject {
     @Published var notebook: Notebook
+    @Published var isContinuousViewMode: Bool = false
+    @Published var currentPageIndex: Int = 0
     
     private let dataStore: DataStore
     private var cancellables = Set<AnyCancellable>()
@@ -48,7 +50,18 @@ class NotebookViewModel: ObservableObject {
     }
     
     func createContinuousPageViewModel() -> ContinuousPageViewModel {
-        return ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
+        let viewModel = ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
+        // Initialize with the current page index
+        viewModel.currentPageIndex = currentPageIndex
+        return viewModel
+    }
+    
+    func toggleViewMode() {
+        isContinuousViewMode.toggle()
+    }
+    
+    func setCurrentPageIndex(_ index: Int) {
+        currentPageIndex = index
     }
     
     private func saveNotebook() {

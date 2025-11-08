@@ -12,6 +12,7 @@ import Combine
 /// Keeps the list of pages synchronized with the data store and provides page-specific view models.
 class ContinuousPageViewModel: ObservableObject {
     @Published var pages: [Page]
+    @Published var currentPageIndex: Int = 0
     let notebookName: String
     let notebookId: UUID
     
@@ -36,5 +37,10 @@ class ContinuousPageViewModel: ObservableObject {
     /// Creates a PageViewModel instance for a specific page, maintaining the connection to the data store and notebook ID
     func createPageViewModel(for page: Page) -> PageViewModel {
         return PageViewModel(page: page, notebookId: notebookId, dataStore: dataStore)
+    }
+    
+    /// Sets the current page index to track which page is visible
+    func setCurrentPageIndex(_ index: Int) {
+        currentPageIndex = index
     }
 }
