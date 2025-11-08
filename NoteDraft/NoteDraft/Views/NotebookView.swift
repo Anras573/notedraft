@@ -17,7 +17,12 @@ struct NotebookView: View {
     var body: some View {
         Group {
             if viewModel.isContinuousViewMode {
-                ContinuousPageView(viewModel: viewModel.createContinuousPageViewModel())
+                let continuousViewModel = viewModel.createContinuousPageViewModel()
+                ContinuousPageView(viewModel: continuousViewModel)
+                    .onDisappear {
+                        // Sync the current page index back when leaving continuous view
+                        viewModel.setCurrentPageIndex(continuousViewModel.currentPageIndex)
+                    }
             } else {
                 listView
             }
