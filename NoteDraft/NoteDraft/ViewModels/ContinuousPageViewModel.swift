@@ -41,6 +41,7 @@ class ContinuousPageViewModel: ObservableObject {
     
     /// Sets the current page index to track which page is visible
     func setCurrentPageIndex(_ index: Int) {
+        guard index >= 0 && index < pages.count else { return }
         currentPageIndex = index
     }
 }
