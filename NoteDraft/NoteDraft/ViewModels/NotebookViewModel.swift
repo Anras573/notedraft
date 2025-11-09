@@ -61,6 +61,7 @@ class NotebookViewModel: ObservableObject {
     }
     
     func setCurrentPageIndex(_ index: Int) {
+        guard index >= 0 && index < notebook.pages.count else { return }
         currentPageIndex = index
     }
     
