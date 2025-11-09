@@ -9,26 +9,15 @@ import SwiftUI
 
 struct NotebookView: View {
     @ObservedObject var viewModel: NotebookViewModel
-    @StateObject private var continuousViewModel: ContinuousPageViewModel
     
     init(viewModel: NotebookViewModel) {
         self.viewModel = viewModel
-        // Initialize the continuous view model once
-        _continuousViewModel = StateObject(wrappedValue: viewModel.createContinuousPageViewModel())
     }
     
     var body: some View {
         Group {
             if viewModel.isContinuousViewMode {
-                ContinuousPageView(viewModel: continuousViewModel)
-                    .onAppear {
-                        // Sync the current page index to continuous view when appearing
-                        continuousViewModel.currentPageIndex = viewModel.currentPageIndex
-                    }
-                    .onDisappear {
-                        // Sync the current page index back when leaving continuous view
-                        viewModel.setCurrentPageIndex(continuousViewModel.currentPageIndex)
-                    }
+                ContinuousPageView(notebookViewModel: viewModel)
             } else {
                 listView
             }

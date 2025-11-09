@@ -9,14 +9,13 @@ import SwiftUI
 import PencilKit
 
 struct ContinuousPageView: View {
-    @ObservedObject var viewModel: ContinuousPageViewModel
-    @State private var scrollToPageId: UUID?
+    @ObservedObject var notebookViewModel: NotebookViewModel
     
     private var navigationTitleText: String {
-        guard !viewModel.pages.isEmpty else {
-            return "\(viewModel.notebookName) - No Pages"
+        guard !notebookViewModel.notebook.pages.isEmpty else {
+            return "\(notebookViewModel.notebook.name) - No Pages"
         }
-        return "\(viewModel.notebookName) - Page \(viewModel.currentPageIndex + 1) of \(viewModel.pages.count)"
+        return "\(notebookViewModel.notebook.name) - Page \(notebookViewModel.currentPageIndex + 1) of \(notebookViewModel.notebook.pages.count)"
     }
     
     var body: some View {
@@ -24,10 +23,10 @@ struct ContinuousPageView: View {
             ScrollViewReader { scrollProxy in
                 ScrollView(.vertical) {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(viewModel.pages.enumerated()), id: \.element.id) { index, page in
+                        ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
                             GeometryReader { pageGeometry in
                                 PageContentView(
-                                    viewModel: viewModel.createPageViewModel(for: page),
+                                    viewModel: notebookViewModel.createPageViewModel(for: page),
                                     pageNumber: index + 1
                                 )
                                 .onChange(of: pageGeometry.frame(in: .named("scroll")).minY) { oldValue, newValue in
@@ -40,8 +39,8 @@ struct ContinuousPageView: View {
                                     let viewportCenter = geometry.size.height / 2
                                     if pageTop < viewportCenter && pageBottom > viewportCenter {
                                         // Only update if the index has actually changed
-                                        if viewModel.currentPageIndex != index {
-                                            viewModel.setCurrentPageIndex(index)
+                                        if notebookViewModel.currentPageIndex != index {
+                                            notebookViewModel.setCurrentPageIndex(index)
                                         }
                                     }
                                 }
@@ -49,7 +48,7 @@ struct ContinuousPageView: View {
                             .frame(height: geometry.size.height)
                             .id(page.id)
                             
-                            if index < viewModel.pages.count - 1 {
+                            if index < notebookViewModel.notebook.pages.count - 1 {
                                 PageDivider(pageNumber: index + 1)
                             }
                         }
@@ -58,8 +57,8 @@ struct ContinuousPageView: View {
                 .coordinateSpace(name: "scroll")
                 .onAppear {
                     // Scroll to the saved page position when view appears
-                    if viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pages.count {
-                        let pageId = viewModel.pages[viewModel.currentPageIndex].id
+                    if notebookViewModel.currentPageIndex >= 0 && notebookViewModel.currentPageIndex < notebookViewModel.notebook.pages.count {
+                        let pageId = notebookViewModel.notebook.pages[notebookViewModel.currentPageIndex].id
                         scrollProxy.scrollTo(pageId, anchor: .top)
                     }
                 }
@@ -131,9 +130,10 @@ struct PageCanvasContent: View {
         Page()
     ])
     dataStore.addNotebook(notebook)
-    let viewModel = ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
+    let viewModel = NotebookViewModel(notebook: notebook, dataStore: dataStore)
+    viewModel.isContinuousViewMode = true
     
     return NavigationStack {
-        ContinuousPageView(viewModel: viewModel)
+        ContinuousPageView(notebookViewModel: viewModel)
     }
 }

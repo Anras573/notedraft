@@ -49,13 +49,6 @@ class NotebookViewModel: ObservableObject {
         return PageViewModel(page: page, notebookId: notebook.id, dataStore: dataStore)
     }
     
-    func createContinuousPageViewModel() -> ContinuousPageViewModel {
-        let viewModel = ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
-        // Initialize with the current page index
-        viewModel.currentPageIndex = currentPageIndex
-        return viewModel
-    }
-    
     func toggleViewMode() {
         isContinuousViewMode.toggle()
     }
