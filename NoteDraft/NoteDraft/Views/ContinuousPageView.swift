@@ -9,29 +9,63 @@ import SwiftUI
 import PencilKit
 
 struct ContinuousPageView: View {
-    @ObservedObject var viewModel: ContinuousPageViewModel
-    @State private var currentPageIndex: Int = 0
+    @ObservedObject var notebookViewModel: NotebookViewModel
+    
+    private var navigationTitleText: String {
+        guard !notebookViewModel.notebook.pages.isEmpty else {
+            return "\(notebookViewModel.notebook.name) - No Pages"
+        }
+        return "\(notebookViewModel.notebook.name) - Page \(notebookViewModel.currentPageIndex + 1) of \(notebookViewModel.notebook.pages.count)"
+    }
     
     var body: some View {
         GeometryReader { geometry in
-            ScrollView(.vertical) {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(viewModel.pages.enumerated()), id: \.element.id) { index, page in
-                        PageContentView(
-                            viewModel: viewModel.createPageViewModel(for: page),
-                            pageNumber: index + 1
-                        )
-                        .frame(height: geometry.size.height)
-                        .id(page.id)
-                        
-                        if index < viewModel.pages.count - 1 {
-                            PageDivider(pageNumber: index + 1)
+            ScrollViewReader { scrollProxy in
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
+                            GeometryReader { pageGeometry in
+                                PageContentView(
+                                    viewModel: notebookViewModel.createPageViewModel(for: page),
+                                    pageNumber: index + 1
+                                )
+                                .onChange(of: pageGeometry.frame(in: .named("scroll")).minY) { oldValue, newValue in
+                                    // Track which page is currently visible
+                                    let pageHeight = geometry.size.height
+                                    let pageTop = pageGeometry.frame(in: .named("scroll")).minY
+                                    let pageBottom = pageTop + pageHeight
+                                    
+                                    // A page is considered "current" if its center is in the viewport
+                                    let viewportCenter = geometry.size.height / 2
+                                    if pageTop < viewportCenter && pageBottom > viewportCenter {
+                                        // Only update if the index has actually changed
+                                        if notebookViewModel.currentPageIndex != index {
+                                            notebookViewModel.setCurrentPageIndex(index)
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(height: geometry.size.height)
+                            .id(page.id)
+                            
+                            if index < notebookViewModel.notebook.pages.count - 1 {
+                                PageDivider(pageNumber: index + 1)
+                            }
                         }
+                    }
+                }
+                .coordinateSpace(name: "scroll")
+                .onAppear {
+                    // Scroll to the saved page position when view appears
+                    if notebookViewModel.currentPageIndex >= 0 && notebookViewModel.currentPageIndex < notebookViewModel.notebook.pages.count {
+                        let pageId = notebookViewModel.notebook.pages[notebookViewModel.currentPageIndex].id
+                        scrollProxy.scrollTo(pageId, anchor: .top)
                     }
                 }
             }
         }
-        .navigationTitle(viewModel.notebookName)
+        .navigationTitle(navigationTitleText)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -96,9 +130,10 @@ struct PageCanvasContent: View {
         Page()
     ])
     dataStore.addNotebook(notebook)
-    let viewModel = ContinuousPageViewModel(notebook: notebook, dataStore: dataStore)
+    let viewModel = NotebookViewModel(notebook: notebook, dataStore: dataStore)
+    viewModel.isContinuousViewMode = true
     
     return NavigationStack {
-        ContinuousPageView(viewModel: viewModel)
+        ContinuousPageView(notebookViewModel: viewModel)
     }
 }

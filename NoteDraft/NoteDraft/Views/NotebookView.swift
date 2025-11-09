@@ -15,9 +15,54 @@ struct NotebookView: View {
     }
     
     var body: some View {
+        Group {
+            if viewModel.isContinuousViewMode {
+                ContinuousPageView(notebookViewModel: viewModel)
+            } else {
+                listView
+            }
+        }
+        .navigationTitle(viewModel.notebook.name)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    withAnimation {
+                        viewModel.toggleViewMode()
+                    }
+                } label: {
+                    Label(
+                        viewModel.isContinuousViewMode ? "List View" : "Continuous View",
+                        systemImage: viewModel.isContinuousViewMode ? "list.bullet" : "doc.text.below.ecg"
+                    )
+                }
+            }
+            
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    viewModel.addPage()
+                } label: {
+                    Label("Add Page", systemImage: "plus")
+                }
+            }
+            
+            if !viewModel.isContinuousViewMode {
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
+                }
+            }
+        }
+    }
+    
+    private var listView: some View {
         List {
             ForEach(Array(viewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
-                NavigationLink(destination: PageView(viewModel: viewModel.createPageViewModel(for: page))) {
+                NavigationLink(destination:
+                    PageView(viewModel: viewModel.createPageViewModel(for: page))
+                        .onAppear {
+                            // Track which page the user navigated to
+                            viewModel.setCurrentPageIndex(index)
+                        }
+                ) {
                     Text("Page \(index + 1)")
                         .font(.headline)
                         .padding(.vertical, 4)
@@ -32,26 +77,6 @@ struct NotebookView: View {
             }
             .onMove { source, destination in
                 viewModel.reorderPages(from: source, to: destination)
-            }
-        }
-        .navigationTitle(viewModel.notebook.name)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                NavigationLink(destination: ContinuousPageView(viewModel: viewModel.createContinuousPageViewModel())) {
-                    Label("Continuous View", systemImage: "doc.text.below.ecg")
-                }
-            }
-            
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    viewModel.addPage()
-                } label: {
-                    Label("Add Page", systemImage: "plus")
-                }
-            }
-            
-            ToolbarItem(placement: .topBarTrailing) {
-                EditButton()
             }
         }
     }
