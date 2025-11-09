@@ -12,6 +12,10 @@ struct ContinuousPageView: View {
     @ObservedObject var viewModel: ContinuousPageViewModel
     @State private var scrollToPageId: UUID?
     
+    private var navigationTitleText: String {
+        "\(viewModel.notebookName) - Page \(viewModel.currentPageIndex + 1) of \(viewModel.pages.count)"
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ScrollViewReader { scrollProxy in
@@ -32,7 +36,10 @@ struct ContinuousPageView: View {
                                     // A page is considered "current" if its center is in the viewport
                                     let viewportCenter = geometry.size.height / 2
                                     if pageTop < viewportCenter && pageBottom > viewportCenter {
-                                        viewModel.setCurrentPageIndex(index)
+                                        // Only update if the index has actually changed
+                                        if viewModel.currentPageIndex != index {
+                                            viewModel.setCurrentPageIndex(index)
+                                        }
                                     }
                                 }
                             }
@@ -55,7 +62,7 @@ struct ContinuousPageView: View {
                 }
             }
         }
-        .navigationTitle("\(viewModel.notebookName) - Page \(viewModel.currentPageIndex + 1) of \(viewModel.pages.count)")
+        .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
