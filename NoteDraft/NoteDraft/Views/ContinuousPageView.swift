@@ -89,11 +89,18 @@ struct PageContentView: View {
     @ObservedObject var viewModel: PageViewModel
     let pageNumber: Int
     @State private var canvasView = PKCanvasView()
+    @State private var isVisible = false
     
     var body: some View {
-        PageCanvasContent(viewModel: viewModel, canvasView: $canvasView)
+        PageCanvasContent(viewModel: viewModel, canvasView: $canvasView, isVisible: isVisible)
+            .onAppear {
+                // Mark page as visible and lazy load drawing data (Phase 3 optimization)
+                isVisible = true
+                viewModel.loadDrawingIfNeeded()
+            }
             .onDisappear {
-                // Auto-save when page scrolls out of view
+                // Mark page as not visible and auto-save when page scrolls out of view
+                isVisible = false
                 viewModel.saveDrawing()
             }
     }
@@ -103,9 +110,13 @@ struct PageContentView: View {
 /// Uses identity-based view lifecycle to properly manage PKCanvasView instances.
 /// The LazyVStack with .id() modifier ensures canvas views are created only when needed
 /// and properly disposed when scrolled out of view, avoiding memory issues.
+/// 
+/// Phase 3 optimization: Canvas is only fully initialized when the page is visible,
+/// improving memory usage and scrolling performance in continuous view mode.
 struct PageCanvasContent: View {
     @ObservedObject var viewModel: PageViewModel
     @Binding var canvasView: PKCanvasView
+    var isVisible: Bool = true // Default to true for PageView compatibility
     
     var body: some View {
         ZStack {
@@ -115,9 +126,15 @@ struct PageCanvasContent: View {
                 customImageName: viewModel.page.backgroundImage
             )
             
-            // Canvas for drawing
-            CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
-                .ignoresSafeArea(edges: .bottom)
+            // Canvas for drawing - only render when visible or in single page view
+            if isVisible {
+                CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
+                    .ignoresSafeArea(edges: .bottom)
+            } else {
+                // Placeholder when not visible to maintain layout
+                Color.clear
+                    .ignoresSafeArea(edges: .bottom)
+            }
         }
     }
 }
