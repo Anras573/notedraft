@@ -13,7 +13,10 @@ struct ContinuousPageView: View {
     @State private var scrollToPageId: UUID?
     
     private var navigationTitleText: String {
-        "\(viewModel.notebookName) - Page \(viewModel.currentPageIndex + 1) of \(viewModel.pages.count)"
+        guard !viewModel.pages.isEmpty else {
+            return "\(viewModel.notebookName) - No Pages"
+        }
+        return "\(viewModel.notebookName) - Page \(viewModel.currentPageIndex + 1) of \(viewModel.pages.count)"
     }
     
     var body: some View {
