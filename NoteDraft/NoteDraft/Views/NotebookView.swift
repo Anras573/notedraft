@@ -67,15 +67,17 @@ struct NotebookView: View {
     private var listView: some View {
         List {
             ForEach(Array(viewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
-                NavigationLink(destination: PageView(viewModel: viewModel.createPageViewModel(for: page))) {
+                NavigationLink(destination:
+                    PageView(viewModel: viewModel.createPageViewModel(for: page))
+                        .onAppear {
+                            // Track which page the user navigated to
+                            viewModel.setCurrentPageIndex(index)
+                        }
+                ) {
                     Text("Page \(index + 1)")
                         .font(.headline)
                         .padding(.vertical, 4)
                 }
-                .simultaneousGesture(TapGesture().onEnded {
-                    // Track which page the user navigated to
-                    viewModel.setCurrentPageIndex(index)
-                })
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         viewModel.deletePage(page)
