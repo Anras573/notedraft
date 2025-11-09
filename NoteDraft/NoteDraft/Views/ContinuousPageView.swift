@@ -58,7 +58,7 @@ struct ContinuousPageView: View {
                 .coordinateSpace(name: "scroll")
                 .onAppear {
                     // Scroll to the saved page position when view appears
-                    if viewModel.currentPageIndex < viewModel.pages.count {
+                    if viewModel.currentPageIndex >= 0 && viewModel.currentPageIndex < viewModel.pages.count {
                         let pageId = viewModel.pages[viewModel.currentPageIndex].id
                         scrollProxy.scrollTo(pageId, anchor: .top)
                     }
