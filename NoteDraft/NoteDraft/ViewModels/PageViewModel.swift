@@ -16,6 +16,7 @@ class PageViewModel: ObservableObject {
     
     private let notebookId: UUID
     private let dataStore: DataStore
+    private var isDrawingLoaded = false
     
     init(page: Page, notebookId: UUID, dataStore: DataStore) {
         self.page = page
@@ -23,12 +24,20 @@ class PageViewModel: ObservableObject {
         self.dataStore = dataStore
         self.selectedBackgroundType = page.backgroundType
         
-        // Load existing drawing if available
+        // Initialize with empty drawing - load lazily when needed
+        self.drawing = PKDrawing()
+    }
+    
+    /// Loads the drawing data lazily when the page becomes visible.
+    /// This improves performance by avoiding loading all drawings upfront.
+    func loadDrawingIfNeeded() {
+        guard !isDrawingLoaded else { return }
+        
         if let drawingData = page.drawingData {
             self.drawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
-        } else {
-            self.drawing = PKDrawing()
         }
+        
+        isDrawingLoaded = true
     }
     
     func setBackgroundType(_ type: BackgroundType) {
