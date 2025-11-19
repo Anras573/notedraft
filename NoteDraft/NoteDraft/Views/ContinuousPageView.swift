@@ -126,15 +126,10 @@ struct PageCanvasContent: View {
                 customImageName: viewModel.page.backgroundImage
             )
             
-            // Canvas for drawing - only render when visible or in single page view
-            if isVisible {
-                CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
-                    .ignoresSafeArea(edges: .bottom)
-            } else {
-                // Placeholder when not visible to maintain layout
-                Color.clear
-                    .ignoresSafeArea(edges: .bottom)
-            }
+            // Always render the CanvasView, but control its visibility with opacity
+            CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
+                .ignoresSafeArea(edges: .bottom)
+                .opacity(isVisible ? 1 : 0)
         }
     }
 }
