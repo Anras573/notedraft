@@ -17,6 +17,7 @@ class PageViewModel: ObservableObject {
     private let notebookId: UUID
     private let dataStore: DataStore
     private var isDrawingLoaded = false
+    private let loadLock = NSLock()
     
     init(page: Page, notebookId: UUID, dataStore: DataStore) {
         self.page = page
@@ -30,11 +31,18 @@ class PageViewModel: ObservableObject {
     
     /// Loads the drawing data lazily when the page becomes visible.
     /// This improves performance by avoiding loading all drawings upfront.
+    /// Thread-safe to prevent multiple concurrent loads during rapid scrolling.
     func loadDrawingIfNeeded() {
+        loadLock.lock()
+        defer { loadLock.unlock() }
+        
         guard !isDrawingLoaded else { return }
         
         if let drawingData = page.drawingData {
-            self.drawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
+            let loadedDrawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
+            DispatchQueue.main.async { [weak self] in
+                self?.drawing = loadedDrawing
+            }
         }
         
         isDrawingLoaded = true
