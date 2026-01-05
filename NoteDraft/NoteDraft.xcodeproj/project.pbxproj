@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		8E62203A22824C09BD0352D9 /* Notebook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655F69F912BD48BD94789515 /* Notebook.swift */; };
 		5D023ECF7D124AA8BE2A971C /* Page.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B6E03ED33947F293CC98EB /* Page.swift */; };
+		BF0E0AB1D8974278B2BB76E9 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EC8F81142C478EA8D9B17B /* PageImage.swift */; };
 		18CAF82B89CC423BB5F6F66A /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D26ABDEA9EB4FA8BF8E1DBE /* DataStore.swift */; };
 		CEF33E66DAEB4867B753BD30 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4037E1BC556B477BB2187FEB /* NotebookListView.swift */; };
 		65103AE04DE74EF9AC5CB34A /* NotebookListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */; };
@@ -29,6 +30,7 @@
 /* Begin PBXFileReference section */
 		655F69F912BD48BD94789515 /* Notebook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notebook.swift; sourceTree = "<group>"; };
 		47B6E03ED33947F293CC98EB /* Page.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Page.swift; sourceTree = "<group>"; };
+		E0EC8F81142C478EA8D9B17B /* PageImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageImage.swift; sourceTree = "<group>"; };
 		3D26ABDEA9EB4FA8BF8E1DBE /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
 		4037E1BC556B477BB2187FEB /* NotebookListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListView.swift; sourceTree = "<group>"; };
 		2C3254771E6143F0AC310D24 /* NotebookListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookListViewModel.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				655F69F912BD48BD94789515 /* Notebook.swift */,
 				47B6E03ED33947F293CC98EB /* Page.swift */,
 				B9B9B9B9B9B9B9B9B9B9B9B9 /* BackgroundType.swift */,
+				E0EC8F81142C478EA8D9B17B /* PageImage.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -205,6 +208,7 @@
 				1A0000010000000000000001 /* NoteDraftApp.swift in Sources */,
 				8E62203A22824C09BD0352D9 /* Notebook.swift in Sources */,
 				5D023ECF7D124AA8BE2A971C /* Page.swift in Sources */,
+				BF0E0AB1D8974278B2BB76E9 /* PageImage.swift in Sources */,
 				18CAF82B89CC423BB5F6F66A /* DataStore.swift in Sources */,
 				CEF33E66DAEB4867B753BD30 /* NotebookListView.swift in Sources */,
 				65103AE04DE74EF9AC5CB34A /* NotebookListViewModel.swift in Sources */,
