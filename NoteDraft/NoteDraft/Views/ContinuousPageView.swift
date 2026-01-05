@@ -107,9 +107,7 @@ struct PageContentView: View {
 }
 
 /// Shared canvas content view used by both PageView and PageContentView.
-/// Uses identity-based view lifecycle to properly manage PKCanvasView instances.
-/// The LazyVStack with .id() modifier ensures canvas views are created only when needed
-/// and properly disposed when scrolled out of view, avoiding memory issues.
+/// Renders the background and PencilKit canvas for a single page.
 /// 
 /// Phase 3 optimization: Canvas is only fully initialized when the page is visible,
 /// improving memory usage and scrolling performance in continuous view mode.
@@ -126,10 +124,14 @@ struct PageCanvasContent: View {
                 customImageName: viewModel.page.backgroundImage
             )
             
-            // Always render the CanvasView, but control its visibility with opacity
-            CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
-                .ignoresSafeArea(edges: .bottom)
-                .opacity(isVisible ? 1 : 0)
+            // Only instantiate CanvasView when visible for memory optimization
+            if isVisible {
+                CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
+                    .ignoresSafeArea(edges: .bottom)
+            } else {
+                Color.clear
+                    .ignoresSafeArea(edges: .bottom)
+            }
         }
     }
 }

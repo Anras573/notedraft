@@ -31,21 +31,21 @@ class PageViewModel: ObservableObject {
     
     /// Loads the drawing data lazily when the page becomes visible.
     /// This improves performance by avoiding loading all drawings upfront.
-    /// Thread-safe to prevent multiple concurrent loads during rapid scrolling.
+    /// Uses a lock to prevent duplicate dispatches of drawing load operations.
     func loadDrawingIfNeeded() {
         loadLock.lock()
-        defer { loadLock.unlock() }
-        
-        guard !isDrawingLoaded else { return }
-        
-        if let drawingData = page.drawingData {
-            let loadedDrawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
-            DispatchQueue.main.async { [weak self] in
-                self?.drawing = loadedDrawing
-            }
+        guard !isDrawingLoaded else {
+            loadLock.unlock()
+            return
         }
-        
         isDrawingLoaded = true
+        let drawingDataCopy = page.drawingData
+        loadLock.unlock()
+        
+        if let drawingData = drawingDataCopy {
+            let loadedDrawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
+            self.drawing = loadedDrawing
+        }
     }
     
     func setBackgroundType(_ type: BackgroundType) {
@@ -55,6 +55,9 @@ class PageViewModel: ObservableObject {
     }
     
     func saveDrawing() {
+        // Only save if drawing has been loaded to prevent overwriting existing data
+        guard isDrawingLoaded else { return }
+        
         // Update page with current drawing data
         page.drawingData = drawing.dataRepresentation()
         saveChanges()
