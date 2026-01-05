@@ -20,6 +20,10 @@ struct PageView: View {
     var body: some View {
         PageCanvasContent(viewModel: viewModel, canvasView: $canvasView)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // Lazy load drawing data when page becomes visible (Phase 3 optimization)
+            viewModel.loadDrawingIfNeeded()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Menu {

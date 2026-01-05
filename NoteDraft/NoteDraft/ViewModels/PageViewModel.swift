@@ -16,6 +16,8 @@ class PageViewModel: ObservableObject {
     
     private let notebookId: UUID
     private let dataStore: DataStore
+    private var isDrawingLoaded = false
+    private let loadLock = NSLock()
     
     init(page: Page, notebookId: UUID, dataStore: DataStore) {
         self.page = page
@@ -23,11 +25,26 @@ class PageViewModel: ObservableObject {
         self.dataStore = dataStore
         self.selectedBackgroundType = page.backgroundType
         
-        // Load existing drawing if available
-        if let drawingData = page.drawingData {
-            self.drawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
-        } else {
-            self.drawing = PKDrawing()
+        // Initialize with empty drawing - load lazily when needed
+        self.drawing = PKDrawing()
+    }
+    
+    /// Loads the drawing data lazily when the page becomes visible.
+    /// This improves performance by avoiding loading all drawings upfront.
+    /// Uses a lock to prevent duplicate dispatches of drawing load operations.
+    func loadDrawingIfNeeded() {
+        loadLock.lock()
+        guard !isDrawingLoaded else {
+            loadLock.unlock()
+            return
+        }
+        isDrawingLoaded = true
+        let drawingDataCopy = page.drawingData
+        loadLock.unlock()
+        
+        if let drawingData = drawingDataCopy {
+            let loadedDrawing = (try? PKDrawing(data: drawingData)) ?? PKDrawing()
+            self.drawing = loadedDrawing
         }
     }
     
@@ -38,6 +55,9 @@ class PageViewModel: ObservableObject {
     }
     
     func saveDrawing() {
+        // Only save if drawing has been loaded to prevent overwriting existing data
+        guard isDrawingLoaded else { return }
+        
         // Update page with current drawing data
         page.drawingData = drawing.dataRepresentation()
         saveChanges()
