@@ -118,13 +118,28 @@ struct PageCanvasContent: View {
     
     var body: some View {
         ZStack {
-            // Background
+            // Layer 1: Background
             BackgroundView(
                 backgroundType: viewModel.selectedBackgroundType,
                 customImageName: viewModel.page.backgroundImage
             )
             
-            // Only instantiate CanvasView when visible for memory optimization
+            // Layer 2: Content Images
+            ForEach(viewModel.page.images) { pageImage in
+                if let uiImage = viewModel.loadImage(named: pageImage.imageName) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: pageImage.size.width, height: pageImage.size.height)
+                        .position(pageImage.position)
+                        .onLongPressGesture {
+                            // Long press to delete image
+                            viewModel.removeImage(id: pageImage.id)
+                        }
+                }
+            }
+            
+            // Layer 3: Drawing Canvas
             if isVisible {
                 CanvasView(drawing: $viewModel.drawing, canvasView: $canvasView)
                     .ignoresSafeArea(edges: .bottom)

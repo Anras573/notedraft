@@ -8,6 +8,7 @@
 import Foundation
 import PencilKit
 import Combine
+import UIKit
 
 class PageViewModel: ObservableObject {
     @Published var page: Page
@@ -76,5 +77,144 @@ class PageViewModel: ObservableObject {
             updatedNotebook.pages[pageIndex] = page
             dataStore.updateNotebook(updatedNotebook)
         }
+    }
+    
+    // MARK: - Image Management
+    
+    /// Adds an image to the page, saving it to local storage
+    func addImage(_ image: UIImage, at position: CGPoint? = nil, size: CGSize? = nil) {
+        guard let imageName = saveImageToStorage(image) else {
+            print("Error: Failed to save image to storage")
+            return
+        }
+        
+        // Calculate default position and size
+        let imageSize = size ?? calculateDefaultSize(for: image)
+        let imagePosition = position ?? CGPoint(x: 500, y: 500) // Default center position
+        
+        // Create PageImage metadata
+        let pageImage = PageImage(
+            imageName: imageName,
+            position: imagePosition,
+            size: imageSize
+        )
+        
+        // Add to page
+        page.images.append(pageImage)
+        saveChanges()
+    }
+    
+    /// Removes an image from the page and deletes it from storage
+    func removeImage(id: UUID) {
+        guard let index = page.images.firstIndex(where: { $0.id == id }) else {
+            return
+        }
+        
+        let imageToRemove = page.images[index]
+        
+        // Delete from storage
+        deleteImageFromStorage(imageToRemove.imageName)
+        
+        // Remove from page
+        page.images.remove(at: index)
+        saveChanges()
+    }
+    
+    /// Loads an image from local storage
+    func loadImage(named: String) -> UIImage? {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        
+        let imagesDirectory = documentsDirectory.appendingPathComponent("images")
+        let imageURL = imagesDirectory.appendingPathComponent(named)
+        
+        guard let imageData = try? Data(contentsOf: imageURL) else {
+            return nil
+        }
+        
+        return UIImage(data: imageData)
+    }
+    
+    // MARK: - Private Image Storage Methods
+    
+    private func saveImageToStorage(_ image: UIImage) -> String? {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        
+        // Create images directory if needed
+        let imagesDirectory = documentsDirectory.appendingPathComponent("images")
+        if !fileManager.fileExists(atPath: imagesDirectory.path) {
+            try? fileManager.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+        }
+        
+        // Resize image if too large
+        let resizedImage = resizeImageIfNeeded(image, maxDimension: 2048)
+        
+        // Generate unique filename
+        let filename = "\(UUID().uuidString).png"
+        let fileURL = imagesDirectory.appendingPathComponent(filename)
+        
+        // Save as PNG
+        guard let imageData = resizedImage.pngData() else {
+            return nil
+        }
+        
+        do {
+            try imageData.write(to: fileURL)
+            return filename
+        } catch {
+            print("Error saving image: \(error)")
+            return nil
+        }
+    }
+    
+    private func deleteImageFromStorage(_ imageName: String) {
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
+        }
+        
+        let imagesDirectory = documentsDirectory.appendingPathComponent("images")
+        let imageURL = imagesDirectory.appendingPathComponent(imageName)
+        
+        try? fileManager.removeItem(at: imageURL)
+    }
+    
+    private func resizeImageIfNeeded(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
+        let size = image.size
+        
+        // Check if resizing is needed
+        if size.width <= maxDimension && size.height <= maxDimension {
+            return image
+        }
+        
+        // Calculate new size maintaining aspect ratio
+        let scale = min(maxDimension / size.width, maxDimension / size.height)
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        
+        // Resize image
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
+        image.draw(in: CGRect(origin: .zero, size: newSize))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return resizedImage ?? image
+    }
+    
+    private func calculateDefaultSize(for image: UIImage) -> CGSize {
+        let maxSize: CGFloat = 400 // Default max size in points
+        let imageSize = image.size
+        
+        // Calculate scale to fit within max size
+        let scale = min(maxSize / imageSize.width, maxSize / imageSize.height, 1.0)
+        
+        return CGSize(
+            width: imageSize.width * scale,
+            height: imageSize.height * scale
+        )
     }
 }

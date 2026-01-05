@@ -7,10 +7,12 @@
 
 import SwiftUI
 import PencilKit
+import PhotosUI
 
 struct PageView: View {
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
+    @State private var selectedPhotoItem: PhotosPickerItem?
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -25,6 +27,12 @@ struct PageView: View {
             viewModel.loadDrawingIfNeeded()
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Image(systemName: "photo.badge.plus")
+                }
+            }
+            
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
                     ForEach(BackgroundType.allCases) { type in
@@ -65,6 +73,18 @@ struct PageView: View {
         .onDisappear {
             // Auto-save when leaving the page
             viewModel.saveDrawing()
+        }
+        .onChange(of: selectedPhotoItem) { oldValue, newValue in
+            Task {
+                if let newValue = newValue,
+                   let data = try? await newValue.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    await MainActor.run {
+                        viewModel.addImage(image)
+                        selectedPhotoItem = nil
+                    }
+                }
+            }
         }
     }
 }
