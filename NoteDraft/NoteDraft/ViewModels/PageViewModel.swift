@@ -81,16 +81,19 @@ class PageViewModel: ObservableObject {
     
     // MARK: - Image Management
     
+    private let defaultImageMaxSize: CGFloat = 400
+    private let defaultImageCenterPosition = CGPoint(x: 500, y: 500)
+    
     /// Adds an image to the page, saving it to local storage
     func addImage(_ image: UIImage, at position: CGPoint? = nil, size: CGSize? = nil) {
         guard let imageName = saveImageToStorage(image) else {
-            print("Error: Failed to save image to storage")
+            print("Error: Failed to save image to storage - check storage permissions and available space")
             return
         }
         
         // Calculate default position and size
         let imageSize = size ?? calculateDefaultSize(for: image)
-        let imagePosition = position ?? CGPoint(x: 500, y: 500) // Default center position
+        let imagePosition = position ?? defaultImageCenterPosition
         
         // Create PageImage metadata
         let pageImage = PageImage(
@@ -206,11 +209,10 @@ class PageViewModel: ObservableObject {
     }
     
     private func calculateDefaultSize(for image: UIImage) -> CGSize {
-        let maxSize: CGFloat = 400 // Default max size in points
         let imageSize = image.size
         
         // Calculate scale to fit within max size
-        let scale = min(maxSize / imageSize.width, maxSize / imageSize.height, 1.0)
+        let scale = min(defaultImageMaxSize / imageSize.width, defaultImageMaxSize / imageSize.height, 1.0)
         
         return CGSize(
             width: imageSize.width * scale,

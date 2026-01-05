@@ -129,7 +129,6 @@ struct PageCanvasContent: View {
                 if let uiImage = viewModel.loadImage(named: pageImage.imageName) {
                     Image(uiImage: uiImage)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
                         .frame(width: pageImage.size.width, height: pageImage.size.height)
                         .position(pageImage.position)
                         .onLongPressGesture {
