@@ -7,10 +7,16 @@
 
 import SwiftUI
 import PencilKit
+import PhotosUI
 
 struct PageView: View {
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showImageLoadError = false
+    @State private var imageLoadErrorMessage = ""
+    @State private var imageLoadTask: Task<Void, Never>?
+    @State private var isLoadingImage = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -25,6 +31,12 @@ struct PageView: View {
             viewModel.loadDrawingIfNeeded()
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Image(systemName: "photo.badge.plus")
+                }
+            }
+            
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
                     ForEach(BackgroundType.allCases) { type in
@@ -65,6 +77,62 @@ struct PageView: View {
         .onDisappear {
             // Auto-save when leaving the page
             viewModel.saveDrawing()
+            // Cancel any ongoing image load task
+            imageLoadTask?.cancel()
+        }
+        .onChange(of: selectedPhotoItem) { oldValue, newValue in
+            // Cancel any existing image load task
+            imageLoadTask?.cancel()
+            
+            guard let newValue = newValue, !isLoadingImage else {
+                return
+            }
+            
+            imageLoadTask = Task {
+                isLoadingImage = true
+                defer { isLoadingImage = false }
+                
+                do {
+                    guard let data = try await newValue.loadTransferable(type: Data.self) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to load image data. The selected image may be in an unsupported format."
+                            showImageLoadError = true
+                            selectedPhotoItem = nil
+                        }
+                        return
+                    }
+                    
+                    guard let image = UIImage(data: data) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to create image from the loaded data. The image data may be corrupted."
+                            showImageLoadError = true
+                            selectedPhotoItem = nil
+                        }
+                        return
+                    }
+                    
+                    await MainActor.run {
+                        do {
+                            try viewModel.addImage(image)
+                        } catch {
+                            imageLoadErrorMessage = "Failed to save image: \(error.localizedDescription)"
+                            showImageLoadError = true
+                        }
+                        selectedPhotoItem = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        imageLoadErrorMessage = "Failed to load image: \(error.localizedDescription)"
+                        showImageLoadError = true
+                        selectedPhotoItem = nil
+                    }
+                }
+            }
+        }
+        .alert("Unable to Load Image", isPresented: $showImageLoadError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(imageLoadErrorMessage)
         }
     }
 }
