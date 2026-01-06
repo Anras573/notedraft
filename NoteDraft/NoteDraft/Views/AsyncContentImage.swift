@@ -43,7 +43,7 @@ struct AsyncContentImage: View {
     }
     
     private func loadImageAsync() async {
-        // Capture values to avoid self reference in detached task
+        // Capture values to avoid retaining self strongly inside the child task
         let imageName = pageImage.imageName
         let vm = viewModel
         
