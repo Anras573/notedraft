@@ -124,14 +124,14 @@ class PageViewModel: ObservableObject {
     }
     
     /// Loads an image from local storage
-    func loadImage(named: String) -> UIImage? {
+    func loadImage(named filename: String) -> UIImage? {
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
         }
         
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
-        let imageURL = imagesDirectory.appendingPathComponent(named)
+        let imageURL = imagesDirectory.appendingPathComponent(filename)
         
         guard let imageData = try? Data(contentsOf: imageURL) else {
             return nil
