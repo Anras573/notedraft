@@ -13,6 +13,8 @@ struct PageView: View {
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showImageLoadError = false
+    @State private var imageLoadErrorMessage = ""
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -76,15 +78,44 @@ struct PageView: View {
         }
         .onChange(of: selectedPhotoItem) { oldValue, newValue in
             Task {
-                if let newValue = newValue,
-                   let data = try? await newValue.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
+                guard let newValue = newValue else { return }
+                
+                do {
+                    guard let data = try await newValue.loadTransferable(type: Data.self) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to load image data. The selected image may be in an unsupported format."
+                            showImageLoadError = true
+                            selectedPhotoItem = nil
+                        }
+                        return
+                    }
+                    
+                    guard let image = UIImage(data: data) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to create image from data. The file may be corrupted or in an unsupported format."
+                            showImageLoadError = true
+                            selectedPhotoItem = nil
+                        }
+                        return
+                    }
+                    
                     await MainActor.run {
                         viewModel.addImage(image)
                         selectedPhotoItem = nil
                     }
+                } catch {
+                    await MainActor.run {
+                        imageLoadErrorMessage = "Failed to load image: \(error.localizedDescription)"
+                        showImageLoadError = true
+                        selectedPhotoItem = nil
+                    }
                 }
             }
+        }
+        .alert("Unable to Load Image", isPresented: $showImageLoadError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(imageLoadErrorMessage)
         }
     }
 }
