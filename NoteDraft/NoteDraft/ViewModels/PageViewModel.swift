@@ -198,7 +198,12 @@ class PageViewModel: ObservableObject {
         // Create images directory if needed
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
         if !fileManager.fileExists(atPath: imagesDirectory.path) {
-            try? fileManager.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+            do {
+                try fileManager.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+            } catch {
+                print("Error creating images directory: \(error.localizedDescription)")
+                return nil
+            }
         }
         
         // Resize image if too large
@@ -225,13 +230,18 @@ class PageViewModel: ObservableObject {
     private func deleteImageFromStorage(_ imageName: String) {
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("Warning: Could not access documents directory for image deletion")
             return
         }
         
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
         let imageURL = imagesDirectory.appendingPathComponent(imageName)
         
-        try? fileManager.removeItem(at: imageURL)
+        do {
+            try fileManager.removeItem(at: imageURL)
+        } catch {
+            print("Error deleting image file \(imageName): \(error.localizedDescription)")
+        }
     }
     
     private func resizeImageIfNeeded(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
