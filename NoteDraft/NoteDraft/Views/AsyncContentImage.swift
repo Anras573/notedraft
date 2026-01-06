@@ -23,9 +23,18 @@ struct AsyncContentImage: View {
                     .position(pageImage.position)
             } else {
                 // Show placeholder while loading or if image fails to load
-                Color.gray.opacity(0.1)
-                    .frame(width: pageImage.size.width, height: pageImage.size.height)
-                    .position(pageImage.position)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.gray.opacity(0.6), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.gray.opacity(0.1))
+                        )
+                    Image(systemName: "photo")
+                        .foregroundColor(Color.gray.opacity(0.7))
+                }
+                .frame(width: pageImage.size.width, height: pageImage.size.height)
+                .position(pageImage.position)
             }
         }
         .task(id: pageImage.id) {
