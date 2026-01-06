@@ -15,6 +15,8 @@ struct PageView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showImageLoadError = false
     @State private var imageLoadErrorMessage = ""
+    @State private var imageLoadTask: Task<Void, Never>?
+    @State private var isLoadingImage = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -77,8 +79,16 @@ struct PageView: View {
             viewModel.saveDrawing()
         }
         .onChange(of: selectedPhotoItem) { oldValue, newValue in
-            Task {
-                guard let newValue = newValue else { return }
+            // Cancel any existing image load task
+            imageLoadTask?.cancel()
+            
+            guard let newValue = newValue, !isLoadingImage else {
+                return
+            }
+            
+            imageLoadTask = Task {
+                isLoadingImage = true
+                defer { isLoadingImage = false }
                 
                 do {
                     guard let data = try await newValue.loadTransferable(type: Data.self) else {
@@ -100,7 +110,12 @@ struct PageView: View {
                     }
                     
                     await MainActor.run {
-                        viewModel.addImage(image)
+                        do {
+                            try viewModel.addImage(image)
+                        } catch {
+                            imageLoadErrorMessage = "Failed to save image: \(error.localizedDescription)"
+                            showImageLoadError = true
+                        }
                         selectedPhotoItem = nil
                     }
                 } catch {

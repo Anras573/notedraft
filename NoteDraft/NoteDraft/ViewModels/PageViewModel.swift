@@ -32,6 +32,15 @@ class PageViewModel: ObservableObject {
         
         // Initialize with empty drawing - load lazily when needed
         self.drawing = PKDrawing()
+        
+        // Register for memory warnings to clear image cache
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.clearImageCache()
+        }
     }
     
     /// Loads the drawing data lazily when the page becomes visible.

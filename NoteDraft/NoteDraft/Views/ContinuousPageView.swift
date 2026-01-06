@@ -116,6 +116,9 @@ struct PageCanvasContent: View {
     @Binding var canvasView: PKCanvasView
     var isVisible: Bool = true // Default to true for PageView compatibility
     
+    @State private var imageToDelete: PageImage?
+    @State private var showDeleteConfirmation = false
+    
     var body: some View {
         ZStack {
             // Layer 1: Background
@@ -128,8 +131,9 @@ struct PageCanvasContent: View {
             ForEach(viewModel.page.images) { pageImage in
                 AsyncContentImage(pageImage: pageImage, viewModel: viewModel)
                     .onLongPressGesture {
-                        // Long press to delete image
-                        viewModel.removeImage(id: pageImage.id)
+                        // Long press to request delete confirmation
+                        imageToDelete = pageImage
+                        showDeleteConfirmation = true
                     }
             }
             
@@ -141,6 +145,14 @@ struct PageCanvasContent: View {
                 Color.clear
                     .ignoresSafeArea(edges: .bottom)
             }
+        }
+        .confirmationDialog("Delete Image", isPresented: $showDeleteConfirmation, presenting: imageToDelete) { image in
+            Button("Delete", role: .destructive) {
+                viewModel.removeImage(id: image.id)
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: { _ in
+            Text("Are you sure you want to delete this image? This action cannot be undone.")
         }
     }
 }
