@@ -19,6 +19,7 @@
 		B1A1A1A1A1A1A1A1A1A1A1A1 /* NotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1B1B1B1B1B1B1B1B1B1B1B1 /* NotebookView.swift */; };
 		B2A2A2A2A2A2A2A2A2A2A2A2 /* NotebookViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B2B2B2B2B2B2B2B2B2B2B2 /* NotebookViewModel.swift */; };
 		B3A3A3A3A3A3A3A3A3A3A3A3 /* PageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */; };
+		A1052B2C5FD445CDA238BF98 /* AsyncContentImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6F4D5376A84B59A88E530A /* AsyncContentImage.swift */; };
 		B4A4A4A4A4A4A4A4A4A4A4A4 /* PageViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B4B4B4B4B4B4B4B4B4B4B4 /* PageViewModel.swift */; };
 		B5A5A5A5A5A5A5A5A5A5A5A5 /* CanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */; };
 		B6A6A6A6A6A6A6A6A6A6A6A6 /* ContinuousPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */; };
@@ -42,6 +43,7 @@
 		B1B1B1B1B1B1B1B1B1B1B1B1 /* NotebookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookView.swift; sourceTree = "<group>"; };
 		B2B2B2B2B2B2B2B2B2B2B2B2 /* NotebookViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotebookViewModel.swift; sourceTree = "<group>"; };
 		B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageView.swift; sourceTree = "<group>"; };
+		CE6F4D5376A84B59A88E530A /* AsyncContentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncContentImage.swift; sourceTree = "<group>"; };
 		B4B4B4B4B4B4B4B4B4B4B4B4 /* PageViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageViewModel.swift; sourceTree = "<group>"; };
 		B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasView.swift; sourceTree = "<group>"; };
 		B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinuousPageView.swift; sourceTree = "<group>"; };
@@ -109,6 +111,7 @@
 				4037E1BC556B477BB2187FEB /* NotebookListView.swift */,
 				B1B1B1B1B1B1B1B1B1B1B1B1 /* NotebookView.swift */,
 				B3B3B3B3B3B3B3B3B3B3B3B3 /* PageView.swift */,
+				CE6F4D5376A84B59A88E530A /* AsyncContentImage.swift */,
 				B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */,
 				B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* BackgroundView.swift */,
@@ -215,6 +218,7 @@
 				B1A1A1A1A1A1A1A1A1A1A1A1 /* NotebookView.swift in Sources */,
 				B2A2A2A2A2A2A2A2A2A2A2A2 /* NotebookViewModel.swift in Sources */,
 				B3A3A3A3A3A3A3A3A3A3A3A3 /* PageView.swift in Sources */,
+				A1052B2C5FD445CDA238BF98 /* AsyncContentImage.swift in Sources */,
 				B4A4A4A4A4A4A4A4A4A4A4A4 /* PageViewModel.swift in Sources */,
 				B5A5A5A5A5A5A5A5A5A5A5A5 /* CanvasView.swift in Sources */,
 				B6A6A6A6A6A6A6A6A6A6A6A6 /* ContinuousPageView.swift in Sources */,

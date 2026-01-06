@@ -126,16 +126,11 @@ struct PageCanvasContent: View {
             
             // Layer 2: Content Images
             ForEach(viewModel.page.images) { pageImage in
-                if let uiImage = viewModel.loadImage(named: pageImage.imageName) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .frame(width: pageImage.size.width, height: pageImage.size.height)
-                        .position(pageImage.position)
-                        .onLongPressGesture {
-                            // Long press to delete image
-                            viewModel.removeImage(id: pageImage.id)
-                        }
-                }
+                AsyncContentImage(pageImage: pageImage, viewModel: viewModel)
+                    .onLongPressGesture {
+                        // Long press to delete image
+                        viewModel.removeImage(id: pageImage.id)
+                    }
             }
             
             // Layer 3: Drawing Canvas

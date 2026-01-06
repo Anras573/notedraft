@@ -20,6 +20,10 @@ class PageViewModel: ObservableObject {
     private var isDrawingLoaded = false
     private let loadLock = NSLock()
     
+    // Image cache for performance optimization
+    private var imageCache: [String: UIImage] = [:]
+    private let imageCacheLock = NSLock()
+    
     init(page: Page, notebookId: UUID, dataStore: DataStore) {
         self.page = page
         self.notebookId = notebookId
@@ -115,6 +119,11 @@ class PageViewModel: ObservableObject {
         
         let imageToRemove = page.images[index]
         
+        // Remove from cache
+        imageCacheLock.lock()
+        imageCache.removeValue(forKey: imageToRemove.imageName)
+        imageCacheLock.unlock()
+        
         // Delete from storage
         deleteImageFromStorage(imageToRemove.imageName)
         
@@ -123,8 +132,17 @@ class PageViewModel: ObservableObject {
         saveChanges()
     }
     
-    /// Loads an image from local storage
+    /// Loads an image from local storage with caching for performance
     func loadImage(named filename: String) -> UIImage? {
+        // Check cache first
+        imageCacheLock.lock()
+        if let cachedImage = imageCache[filename] {
+            imageCacheLock.unlock()
+            return cachedImage
+        }
+        imageCacheLock.unlock()
+        
+        // Load from storage if not in cache
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
@@ -133,11 +151,24 @@ class PageViewModel: ObservableObject {
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
         let imageURL = imagesDirectory.appendingPathComponent(filename)
         
-        guard let imageData = try? Data(contentsOf: imageURL) else {
+        guard let imageData = try? Data(contentsOf: imageURL),
+              let image = UIImage(data: imageData) else {
             return nil
         }
         
-        return UIImage(data: imageData)
+        // Store in cache
+        imageCacheLock.lock()
+        imageCache[filename] = image
+        imageCacheLock.unlock()
+        
+        return image
+    }
+    
+    /// Clears the image cache (useful for memory management)
+    func clearImageCache() {
+        imageCacheLock.lock()
+        imageCache.removeAll()
+        imageCacheLock.unlock()
     }
     
     // MARK: - Private Image Storage Methods
