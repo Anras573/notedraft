@@ -86,7 +86,10 @@ class PageViewModel: ObservableObject {
     // MARK: - Image Management
     
     private let defaultImageMaxSize: CGFloat = 400
-    private let defaultImageCenterPosition = CGPoint(x: 500, y: 500)
+    private var defaultImageCenterPosition: CGPoint {
+        let bounds = UIScreen.main.bounds
+        return CGPoint(x: bounds.midX, y: bounds.midY)
+    }
     
     /// Adds an image to the page, saving it to local storage
     func addImage(_ image: UIImage, at position: CGPoint? = nil, size: CGSize? = nil) {
