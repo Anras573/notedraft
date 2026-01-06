@@ -48,9 +48,9 @@ struct AsyncContentImage: View {
         let vm = viewModel
         
         // Load image on background thread to avoid blocking file I/O
-        // Note: Task.detached is used because loadImage performs synchronous file I/O
-        // and we want to ensure it runs on a background thread, not the calling task's thread
-        let image = await Task.detached(priority: .userInitiated) {
+        // Use a child Task so this work participates in structured concurrency and
+        // is cancelled if the parent task (the view's .task) is cancelled.
+        let image = await Task(priority: .userInitiated) {
             vm.loadImage(named: imageName)
         }.value
         
