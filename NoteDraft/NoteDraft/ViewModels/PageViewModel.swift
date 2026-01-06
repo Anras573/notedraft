@@ -36,6 +36,9 @@ class PageViewModel: ObservableObject {
     private var imageCache: [String: UIImage] = [:]
     private let imageCacheLock = NSLock()
     
+    // Store observer token for proper cleanup
+    private var memoryWarningObserver: NSObjectProtocol?
+    
     init(page: Page, notebookId: UUID, dataStore: DataStore) {
         self.page = page
         self.notebookId = notebookId
@@ -47,7 +50,8 @@ class PageViewModel: ObservableObject {
         
         // Register for memory warnings to clear image cache
         // Use background queue to avoid blocking main thread during cache clearing
-        NotificationCenter.default.addObserver(
+        // Store the observer token for proper cleanup in deinit
+        memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
             queue: OperationQueue()
@@ -58,7 +62,9 @@ class PageViewModel: ObservableObject {
     
     deinit {
         // Remove notification observer to prevent memory leaks
-        NotificationCenter.default.removeObserver(self)
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
     
     /// Loads the drawing data lazily when the page becomes visible.
@@ -161,19 +167,26 @@ class PageViewModel: ObservableObject {
     }
     
     /// Loads an image from local storage with caching for performance
-    func loadImage(named filename: String) -> UIImage? {
+    /// - Returns: The loaded image, or nil if loading fails
+    /// - Note: Performs async file I/O to avoid blocking the calling thread
+    func loadImage(named filename: String) async -> UIImage? {
         // Sanitize the filename to prevent path traversal attacks
         let sanitizedFilename = (filename as NSString).lastPathComponent
         guard !sanitizedFilename.isEmpty else {
             return nil
         }
         
-        // Check cache first
+        // Check cache first (synchronous cache access is fine)
         if let cachedImage = getCachedImage(sanitizedFilename) {
             return cachedImage
         }
         
-        // Load from storage if not in cache
+        // Check for task cancellation before performing I/O
+        if Task.isCancelled {
+            return nil
+        }
+        
+        // Load from storage if not in cache (async to avoid blocking)
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
@@ -182,8 +195,19 @@ class PageViewModel: ObservableObject {
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
         let imageURL = imagesDirectory.appendingPathComponent(sanitizedFilename)
         
-        guard let imageData = try? Data(contentsOf: imageURL),
-              let image = UIImage(data: imageData) else {
+        // Perform file I/O asynchronously
+        guard let imageData = try? await Task.detached {
+            try Data(contentsOf: imageURL)
+        }.value else {
+            return nil
+        }
+        
+        // Check for cancellation again after I/O
+        if Task.isCancelled {
+            return nil
+        }
+        
+        guard let image = UIImage(data: imageData) else {
             return nil
         }
         

@@ -43,16 +43,12 @@ struct AsyncContentImage: View {
     }
     
     private func loadImageAsync() async {
-        // Capture values to avoid retaining self strongly inside the child task
+        // Capture values to avoid retaining self strongly
         let imageName = pageImage.imageName
         let vm = viewModel
         
-        // Load image on background thread to avoid blocking file I/O
-        // Use a child Task so this work participates in structured concurrency and
-        // is cancelled if the parent task (the view's .task) is cancelled.
-        let image = await Task(priority: .userInitiated) {
-            vm.loadImage(named: imageName)
-        }.value
+        // Load image asynchronously - loadImage is now async and handles its own task management
+        let image = await vm.loadImage(named: imageName)
         
         // Update UI on main thread
         await MainActor.run {
