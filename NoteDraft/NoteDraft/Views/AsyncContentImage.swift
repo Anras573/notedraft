@@ -22,8 +22,8 @@ struct AsyncContentImage: View {
                     .resizable()
                     .frame(width: pageImage.size.width, height: pageImage.size.height)
                     .position(pageImage.position)
-            } else if isLoading {
-                // Show placeholder while loading
+            } else {
+                // Show placeholder while loading or if image fails to load
                 Color.gray.opacity(0.1)
                     .frame(width: pageImage.size.width, height: pageImage.size.height)
                     .position(pageImage.position)
@@ -37,10 +37,8 @@ struct AsyncContentImage: View {
     private func loadImageAsync() async {
         isLoading = true
         
-        // Load image off the main thread
-        let image = await Task.detached(priority: .userInitiated) {
-            return viewModel.loadImage(named: pageImage.imageName)
-        }.value
+        // Load image using regular async context (loadImage is already thread-safe)
+        let image = viewModel.loadImage(named: pageImage.imageName)
         
         // Update UI on main thread
         await MainActor.run {

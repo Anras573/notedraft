@@ -120,9 +120,11 @@ class PageViewModel: ObservableObject {
         let imageToRemove = page.images[index]
         
         // Remove from cache
-        imageCacheLock.lock()
-        imageCache.removeValue(forKey: imageToRemove.imageName)
-        imageCacheLock.unlock()
+        do {
+            imageCacheLock.lock()
+            defer { imageCacheLock.unlock() }
+            imageCache.removeValue(forKey: imageToRemove.imageName)
+        }
         
         // Delete from storage
         deleteImageFromStorage(imageToRemove.imageName)
@@ -135,14 +137,16 @@ class PageViewModel: ObservableObject {
     /// Loads an image from local storage with caching for performance
     func loadImage(named filename: String) -> UIImage? {
         // Check cache first
-        imageCacheLock.lock()
-        if let cachedImage = imageCache[filename] {
-            imageCacheLock.unlock()
-            return cachedImage
+        do {
+            imageCacheLock.lock()
+            defer { imageCacheLock.unlock() }
+            
+            if let cachedImage = imageCache[filename] {
+                return cachedImage
+            }
         }
-        imageCacheLock.unlock()
         
-        // Load from storage if not in cache
+        // Load from storage if not in cache (outside of lock to avoid blocking)
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
@@ -157,9 +161,11 @@ class PageViewModel: ObservableObject {
         }
         
         // Store in cache
-        imageCacheLock.lock()
-        imageCache[filename] = image
-        imageCacheLock.unlock()
+        do {
+            imageCacheLock.lock()
+            defer { imageCacheLock.unlock() }
+            imageCache[filename] = image
+        }
         
         return image
     }
@@ -167,8 +173,8 @@ class PageViewModel: ObservableObject {
     /// Clears the image cache (useful for memory management)
     func clearImageCache() {
         imageCacheLock.lock()
+        defer { imageCacheLock.unlock() }
         imageCache.removeAll()
-        imageCacheLock.unlock()
     }
     
     // MARK: - Private Image Storage Methods
