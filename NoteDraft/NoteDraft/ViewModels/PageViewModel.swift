@@ -120,11 +120,7 @@ class PageViewModel: ObservableObject {
         let imageToRemove = page.images[index]
         
         // Remove from cache
-        {
-            imageCacheLock.lock()
-            defer { imageCacheLock.unlock() }
-            imageCache.removeValue(forKey: imageToRemove.imageName)
-        }
+        removeCachedImage(imageToRemove.imageName)
         
         // Delete from storage
         deleteImageFromStorage(imageToRemove.imageName)
@@ -137,16 +133,11 @@ class PageViewModel: ObservableObject {
     /// Loads an image from local storage with caching for performance
     func loadImage(named filename: String) -> UIImage? {
         // Check cache first
-        {
-            imageCacheLock.lock()
-            defer { imageCacheLock.unlock() }
-            
-            if let cachedImage = imageCache[filename] {
-                return cachedImage
-            }
+        if let cachedImage = getCachedImage(filename) {
+            return cachedImage
         }
         
-        // Load from storage if not in cache (outside of lock to avoid blocking)
+        // Load from storage if not in cache
         let fileManager = FileManager.default
         guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
             return nil
@@ -161,11 +152,7 @@ class PageViewModel: ObservableObject {
         }
         
         // Store in cache
-        {
-            imageCacheLock.lock()
-            defer { imageCacheLock.unlock() }
-            imageCache[filename] = image
-        }
+        cacheImage(image, forKey: filename)
         
         return image
     }
@@ -175,6 +162,26 @@ class PageViewModel: ObservableObject {
         imageCacheLock.lock()
         defer { imageCacheLock.unlock() }
         imageCache.removeAll()
+    }
+    
+    // MARK: - Private Image Cache Methods
+    
+    private func getCachedImage(_ filename: String) -> UIImage? {
+        imageCacheLock.lock()
+        defer { imageCacheLock.unlock() }
+        return imageCache[filename]
+    }
+    
+    private func cacheImage(_ image: UIImage, forKey filename: String) {
+        imageCacheLock.lock()
+        defer { imageCacheLock.unlock() }
+        imageCache[filename] = image
+    }
+    
+    private func removeCachedImage(_ filename: String) {
+        imageCacheLock.lock()
+        defer { imageCacheLock.unlock() }
+        imageCache.removeValue(forKey: filename)
     }
     
     // MARK: - Private Image Storage Methods

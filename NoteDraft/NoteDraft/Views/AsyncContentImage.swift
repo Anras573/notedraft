@@ -34,12 +34,12 @@ struct AsyncContentImage: View {
     }
     
     private func loadImageAsync() async {
-        // Load image using regular async context (loadImage is already thread-safe)
-        let image = viewModel.loadImage(named: pageImage.imageName)
+        // Load image on background thread to avoid blocking
+        let image = await Task.detached(priority: .userInitiated) {
+            self.viewModel.loadImage(named: self.pageImage.imageName)
+        }.value
         
         // Update UI on main thread
-        await MainActor.run {
-            loadedImage = image
-        }
+        loadedImage = image
     }
 }
