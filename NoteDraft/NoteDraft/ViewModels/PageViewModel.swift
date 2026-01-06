@@ -10,6 +10,18 @@ import PencilKit
 import Combine
 import UIKit
 
+/// Errors that can occur during image storage operations
+enum ImageStorageError: LocalizedError {
+    case saveFailed(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .saveFailed(let message):
+            return message
+        }
+    }
+}
+
 class PageViewModel: ObservableObject {
     @Published var page: Page
     @Published var drawing: PKDrawing
@@ -42,6 +54,11 @@ class PageViewModel: ObservableObject {
         ) { [weak self] _ in
             self?.clearImageCache()
         }
+    }
+    
+    deinit {
+        // Remove notification observer to prevent memory leaks
+        NotificationCenter.default.removeObserver(self)
     }
     
     /// Loads the drawing data lazily when the page becomes visible.
@@ -102,10 +119,10 @@ class PageViewModel: ObservableObject {
     }
     
     /// Adds an image to the page, saving it to local storage
-    func addImage(_ image: UIImage, at position: CGPoint? = nil, size: CGSize? = nil) {
+    /// - Throws: ImageStorageError if the image cannot be saved
+    func addImage(_ image: UIImage, at position: CGPoint? = nil, size: CGSize? = nil) throws {
         guard let imageName = saveImageToStorage(image) else {
-            print("Error: Failed to save image to storage - check storage permissions and available space")
-            return
+            throw ImageStorageError.saveFailed("Failed to save image to storage - check storage permissions and available space")
         }
         
         // Calculate default position and size
@@ -145,8 +162,14 @@ class PageViewModel: ObservableObject {
     
     /// Loads an image from local storage with caching for performance
     func loadImage(named filename: String) -> UIImage? {
+        // Sanitize the filename to prevent path traversal attacks
+        let sanitizedFilename = (filename as NSString).lastPathComponent
+        guard !sanitizedFilename.isEmpty else {
+            return nil
+        }
+        
         // Check cache first
-        if let cachedImage = getCachedImage(filename) {
+        if let cachedImage = getCachedImage(sanitizedFilename) {
             return cachedImage
         }
         
@@ -157,7 +180,7 @@ class PageViewModel: ObservableObject {
         }
         
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
-        let imageURL = imagesDirectory.appendingPathComponent(filename)
+        let imageURL = imagesDirectory.appendingPathComponent(sanitizedFilename)
         
         guard let imageData = try? Data(contentsOf: imageURL),
               let image = UIImage(data: imageData) else {
@@ -165,7 +188,7 @@ class PageViewModel: ObservableObject {
         }
         
         // Store in cache
-        cacheImage(image, forKey: filename)
+        cacheImage(image, forKey: sanitizedFilename)
         
         return image
     }

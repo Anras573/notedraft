@@ -77,6 +77,8 @@ struct PageView: View {
         .onDisappear {
             // Auto-save when leaving the page
             viewModel.saveDrawing()
+            // Cancel any ongoing image load task
+            imageLoadTask?.cancel()
         }
         .onChange(of: selectedPhotoItem) { oldValue, newValue in
             // Cancel any existing image load task
@@ -110,7 +112,12 @@ struct PageView: View {
                     }
                     
                     await MainActor.run {
-                        viewModel.addImage(image)
+                        do {
+                            try viewModel.addImage(image)
+                        } catch {
+                            imageLoadErrorMessage = "Failed to save image: \(error.localizedDescription)"
+                            showImageLoadError = true
+                        }
                         selectedPhotoItem = nil
                     }
                 } catch {
