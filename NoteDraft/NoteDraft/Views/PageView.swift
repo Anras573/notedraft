@@ -110,12 +110,7 @@ struct PageView: View {
                     }
                     
                     await MainActor.run {
-                        do {
-                            try viewModel.addImage(image)
-                        } catch {
-                            imageLoadErrorMessage = "Failed to save image: \(error.localizedDescription)"
-                            showImageLoadError = true
-                        }
+                        viewModel.addImage(image)
                         selectedPhotoItem = nil
                     }
                 } catch {

@@ -34,10 +34,11 @@ class PageViewModel: ObservableObject {
         self.drawing = PKDrawing()
         
         // Register for memory warnings to clear image cache
+        // Use background queue to avoid blocking main thread during cache clearing
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
-            queue: .main
+            queue: OperationQueue()
         ) { [weak self] _ in
             self?.clearImageCache()
         }
