@@ -11,7 +11,8 @@ struct Page: Identifiable, Codable {
     let id: UUID
     var backgroundType: BackgroundType
     var backgroundImage: String?
-    var images: [PageImage] // Content images on top of background
+    /// Content images on top of background
+    var images: [PageImage]
     var drawingData: Data?
     
     init(id: UUID = UUID(), backgroundType: BackgroundType = .blank, backgroundImage: String? = nil, images: [PageImage] = [], drawingData: Data? = nil) {
