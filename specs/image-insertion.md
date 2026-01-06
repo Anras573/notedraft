@@ -259,7 +259,7 @@ ToolbarItem(placement: .topBarLeading) {
 
 ### Visual Design
 - **Image Picker**: Use system `PhotosPicker` for familiar UX
-- **Initial Placement**: Center of canvas at 300x300 pt default size
+- **Initial Placement**: Center of canvas at 400x400 pt default size
 - **Image Border**: Optional subtle border for clarity
 - **Delete Gesture**: Long-press to show delete option
 
