@@ -92,7 +92,7 @@ struct PageView: View {
                     
                     guard let image = UIImage(data: data) else {
                         await MainActor.run {
-                            imageLoadErrorMessage = "Failed to create image from data. The file may be corrupted or in an unsupported format."
+                            imageLoadErrorMessage = "Failed to create image from the loaded data. The image data may be corrupted."
                             showImageLoadError = true
                             selectedPhotoItem = nil
                         }
