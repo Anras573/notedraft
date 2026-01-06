@@ -244,13 +244,20 @@ class PageViewModel: ObservableObject {
             return
         }
         
+        // Sanitize the image name to prevent path traversal
+        let sanitizedName = (imageName as NSString).lastPathComponent
+        guard !sanitizedName.isEmpty else {
+            print("Warning: Invalid image filename for deletion")
+            return
+        }
+        
         let imagesDirectory = documentsDirectory.appendingPathComponent("images")
-        let imageURL = imagesDirectory.appendingPathComponent(imageName)
+        let imageURL = imagesDirectory.appendingPathComponent(sanitizedName)
         
         do {
             try fileManager.removeItem(at: imageURL)
         } catch {
-            print("Error deleting image file \(imageName): \(error.localizedDescription)")
+            print("Error deleting image file \(sanitizedName): \(error.localizedDescription)")
         }
     }
     
