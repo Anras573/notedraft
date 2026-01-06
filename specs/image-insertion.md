@@ -250,7 +250,7 @@ ToolbarItem(placement: .topBarLeading) {
 ### Performance Considerations
 - Use `AsyncImage` or cached loading for smoother performance
 - Limit image size on import (resize large images)
-- Store images at reasonable resolution (1024x1024 max)
+- Store images at reasonable resolution (2048x2048 max)
 - Use lazy loading for images in continuous view mode
 
 ---
