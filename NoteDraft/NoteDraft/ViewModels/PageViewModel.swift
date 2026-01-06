@@ -120,7 +120,7 @@ class PageViewModel: ObservableObject {
         let imageToRemove = page.images[index]
         
         // Remove from cache
-        do {
+        {
             imageCacheLock.lock()
             defer { imageCacheLock.unlock() }
             imageCache.removeValue(forKey: imageToRemove.imageName)
@@ -137,7 +137,7 @@ class PageViewModel: ObservableObject {
     /// Loads an image from local storage with caching for performance
     func loadImage(named filename: String) -> UIImage? {
         // Check cache first
-        do {
+        {
             imageCacheLock.lock()
             defer { imageCacheLock.unlock() }
             
@@ -161,7 +161,7 @@ class PageViewModel: ObservableObject {
         }
         
         // Store in cache
-        do {
+        {
             imageCacheLock.lock()
             defer { imageCacheLock.unlock() }
             imageCache[filename] = image

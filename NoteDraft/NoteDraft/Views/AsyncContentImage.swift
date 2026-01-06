@@ -13,7 +13,6 @@ struct AsyncContentImage: View {
     let viewModel: PageViewModel
     
     @State private var loadedImage: UIImage?
-    @State private var isLoading = false
     
     var body: some View {
         Group {
@@ -35,15 +34,12 @@ struct AsyncContentImage: View {
     }
     
     private func loadImageAsync() async {
-        isLoading = true
-        
         // Load image using regular async context (loadImage is already thread-safe)
         let image = viewModel.loadImage(named: pageImage.imageName)
         
         // Update UI on main thread
         await MainActor.run {
             loadedImage = image
-            isLoading = false
         }
     }
 }
