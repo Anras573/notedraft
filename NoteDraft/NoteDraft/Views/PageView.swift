@@ -19,7 +19,6 @@ struct PageView: View {
     @State private var imageLoadTask: Task<Void, Never>?
     @State private var backgroundImageLoadTask: Task<Void, Never>?
     @State private var isLoadingImage = false
-    @State private var isLoadingBackgroundImage = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -65,6 +64,7 @@ struct PageView: View {
                     PhotosPicker(selection: $selectedBackgroundPhotoItem, matching: .images) {
                         Image(systemName: "photo.fill.on.rectangle.fill")
                     }
+                    .accessibilityLabel("Select background image")
                 }
             }
             
@@ -146,13 +146,11 @@ struct PageView: View {
             // Cancel any existing background image load task
             backgroundImageLoadTask?.cancel()
             
-            guard let newValue = newValue, !isLoadingBackgroundImage else {
+            guard let newValue = newValue else {
                 return
             }
             
             backgroundImageLoadTask = Task {
-                isLoadingBackgroundImage = true
-                defer { isLoadingBackgroundImage = false }
                 
                 do {
                     guard let data = try await newValue.loadTransferable(type: Data.self) else {

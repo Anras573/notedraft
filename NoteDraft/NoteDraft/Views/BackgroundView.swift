@@ -41,7 +41,7 @@ struct BackgroundView: View {
                     if let image = loadedBackgroundImage {
                         Image(uiImage: image)
                             .resizable()
-                            .scaledToFill()
+                            .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.width, height: geometry.size.height)
                             .opacity(0.3)
                             .clipped()

@@ -100,7 +100,7 @@ class PageViewModel: ObservableObject {
             throw ImageStorageError.saveFailed("Failed to save background image to storage")
         }
         
-        // Delete old background image if one exists
+        // Delete old background image after successfully saving the new one
         if let oldBackgroundImage = page.backgroundImage {
             deleteImageFromStorage(oldBackgroundImage)
             removeCachedImage(oldBackgroundImage)
