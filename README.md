@@ -187,11 +187,11 @@ This project follows a **spec-driven development** approach. All implementations
 # Open in Xcode
 open NoteDraft/NoteDraft.xcodeproj
 
-# Or use xcodebuild
+# Or use xcodebuild (adjust OS version to match your available simulators)
 xcodebuild -project NoteDraft/NoteDraft.xcodeproj \
            -scheme NoteDraft \
            -sdk iphonesimulator \
-           -destination 'platform=iOS Simulator,OS=latest,name=iPad Pro (12.9-inch)'
+           -destination 'platform=iOS Simulator,OS=17.0,name=iPad Pro (12.9-inch)'
 ```
 
 ### Contributing
