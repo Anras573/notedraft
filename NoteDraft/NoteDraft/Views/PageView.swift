@@ -151,7 +151,6 @@ struct PageView: View {
             }
             
             backgroundImageLoadTask = Task {
-                
                 do {
                     guard let data = try await newValue.loadTransferable(type: Data.self) else {
                         await MainActor.run {
