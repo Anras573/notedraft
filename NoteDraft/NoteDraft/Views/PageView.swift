@@ -44,13 +44,7 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.allCases) { type in
                         Button {
-                            if type == .customImage {
-                                // Trigger background image picker for custom image
-                                // The actual photo picker will be shown via the sheet
-                                viewModel.setBackgroundType(type)
-                            } else {
-                                viewModel.setBackgroundType(type)
-                            }
+                            viewModel.setBackgroundType(type)
                         } label: {
                             HStack {
                                 Text(type.displayName)
