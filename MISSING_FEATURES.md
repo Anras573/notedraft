@@ -161,7 +161,7 @@ ToolbarItem(placement: .topBarLeading) {
    - ✅ Image caching in PageViewModel
    - ✅ Async image loading
    - ✅ Memory warning handling
-   - ✅ Image resizing on import (max 2048px)
+   - ✅ Image resizing on import (max dimension 2048px)
 
 #### From `specs/continuous-page-rendering.md`:
 1. **Continuous Scroll View**
@@ -230,9 +230,9 @@ This is the only core feature from the base specifications that is missing. It s
    ```swift
    // When .customImage is selected AND no backgroundImage exists
    // OR when user explicitly chooses "Change Background Image"
-   // → Show photo picker
-   // → Save selected image
-   // → Update page.backgroundImage
+   // 1. Show photo picker
+   // 2. Save selected image
+   // 3. Update page.backgroundImage
    ```
 
 ### Priority 2: Documentation
