@@ -43,7 +43,7 @@ struct BackgroundView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(width: geometry.size.width, height: geometry.size.height)
-                            .opacity(0.3)
+                            .opacity(0.5)
                             .clipped()
                     } else {
                         // Fallback to blank if no custom image specified or loaded
