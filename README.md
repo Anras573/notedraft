@@ -191,7 +191,7 @@ open NoteDraft/NoteDraft.xcodeproj
 xcodebuild -project NoteDraft/NoteDraft.xcodeproj \
            -scheme NoteDraft \
            -sdk iphonesimulator \
-           -destination 'platform=iOS Simulator,name=iPad Pro (12.9-inch) (6th generation)'
+           -destination 'platform=iOS Simulator,OS=latest,name=iPad Pro (12.9-inch)'
 ```
 
 ### Contributing
@@ -245,7 +245,7 @@ The following are intentionally **not** included:
 - Lazy loading of pages in continuous view
 - Image caching in memory
 - Canvas view lifecycle management
-- Image resizing on import (max 2048px)
+- Image resizing on import (automatically resized to fit within 2048x2048 pixels while maintaining aspect ratio)
 - Memory warning handling
 
 ### Supported Image Formats
