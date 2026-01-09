@@ -13,10 +13,13 @@ struct PageView: View {
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var selectedBackgroundPhotoItem: PhotosPickerItem?
     @State private var showImageLoadError = false
     @State private var imageLoadErrorMessage = ""
     @State private var imageLoadTask: Task<Void, Never>?
+    @State private var backgroundImageLoadTask: Task<Void, Never>?
     @State private var isLoadingImage = false
+    @State private var isLoadingBackgroundImage = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -41,7 +44,13 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.allCases) { type in
                         Button {
-                            viewModel.setBackgroundType(type)
+                            if type == .customImage {
+                                // Trigger background image picker for custom image
+                                // The actual photo picker will be shown via the sheet
+                                viewModel.setBackgroundType(type)
+                            } else {
+                                viewModel.setBackgroundType(type)
+                            }
                         } label: {
                             HStack {
                                 Text(type.displayName)
@@ -53,6 +62,15 @@ struct PageView: View {
                     }
                 } label: {
                     Image(systemName: "photo.on.rectangle")
+                }
+            }
+            
+            // Background image photo picker (shown when Custom Image is selected)
+            ToolbarItem(placement: .topBarLeading) {
+                if viewModel.selectedBackgroundType == .customImage {
+                    PhotosPicker(selection: $selectedBackgroundPhotoItem, matching: .images) {
+                        Image(systemName: "photo.fill.on.rectangle.fill")
+                    }
                 }
             }
             
@@ -77,8 +95,9 @@ struct PageView: View {
         .onDisappear {
             // Auto-save when leaving the page
             viewModel.saveDrawing()
-            // Cancel any ongoing image load task
+            // Cancel any ongoing image load tasks
             imageLoadTask?.cancel()
+            backgroundImageLoadTask?.cancel()
         }
         .onChange(of: selectedPhotoItem) { oldValue, newValue in
             // Cancel any existing image load task
@@ -125,6 +144,55 @@ struct PageView: View {
                         imageLoadErrorMessage = "Failed to load image: \(error.localizedDescription)"
                         showImageLoadError = true
                         selectedPhotoItem = nil
+                    }
+                }
+            }
+        }
+        .onChange(of: selectedBackgroundPhotoItem) { oldValue, newValue in
+            // Cancel any existing background image load task
+            backgroundImageLoadTask?.cancel()
+            
+            guard let newValue = newValue, !isLoadingBackgroundImage else {
+                return
+            }
+            
+            backgroundImageLoadTask = Task {
+                isLoadingBackgroundImage = true
+                defer { isLoadingBackgroundImage = false }
+                
+                do {
+                    guard let data = try await newValue.loadTransferable(type: Data.self) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to load background image data. The selected image may be in an unsupported format."
+                            showImageLoadError = true
+                            selectedBackgroundPhotoItem = nil
+                        }
+                        return
+                    }
+                    
+                    guard let image = UIImage(data: data) else {
+                        await MainActor.run {
+                            imageLoadErrorMessage = "Failed to create background image from the loaded data. The image data may be corrupted."
+                            showImageLoadError = true
+                            selectedBackgroundPhotoItem = nil
+                        }
+                        return
+                    }
+                    
+                    await MainActor.run {
+                        do {
+                            try viewModel.setBackgroundImage(image)
+                        } catch {
+                            imageLoadErrorMessage = "Failed to save background image: \(error.localizedDescription)"
+                            showImageLoadError = true
+                        }
+                        selectedBackgroundPhotoItem = nil
+                    }
+                } catch {
+                    await MainActor.run {
+                        imageLoadErrorMessage = "Failed to load background image: \(error.localizedDescription)"
+                        showImageLoadError = true
+                        selectedBackgroundPhotoItem = nil
                     }
                 }
             }

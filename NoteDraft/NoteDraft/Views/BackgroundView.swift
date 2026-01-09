@@ -10,6 +10,15 @@ import SwiftUI
 struct BackgroundView: View {
     let backgroundType: BackgroundType
     let customImageName: String?
+    let viewModel: PageViewModel?
+    
+    @State private var loadedBackgroundImage: UIImage?
+    
+    init(backgroundType: BackgroundType, customImageName: String?, viewModel: PageViewModel? = nil) {
+        self.backgroundType = backgroundType
+        self.customImageName = customImageName
+        self.viewModel = viewModel
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -29,20 +38,38 @@ struct BackgroundView: View {
                     GridPatternView()
                     
                 case .customImage:
-                    if let imageName = customImageName {
-                        Image(imageName)
+                    if let image = loadedBackgroundImage {
+                        Image(uiImage: image)
                             .resizable()
-                            .scaledToFit()
+                            .scaledToFill()
+                            .frame(width: geometry.size.width, height: geometry.size.height)
                             .opacity(0.3)
                             .clipped()
                     } else {
-                        // Fallback to blank if no custom image specified
+                        // Fallback to blank if no custom image specified or loaded
                         EmptyView()
                     }
                 }
             }
         }
         .ignoresSafeArea()
+        .task(id: customImageName) {
+            await loadBackgroundImage()
+        }
+    }
+    
+    private func loadBackgroundImage() async {
+        guard backgroundType == .customImage,
+              let imageName = customImageName,
+              let vm = viewModel else {
+            loadedBackgroundImage = nil
+            return
+        }
+        
+        let image = await vm.loadImage(named: imageName)
+        await MainActor.run {
+            loadedBackgroundImage = image
+        }
     }
 }
 

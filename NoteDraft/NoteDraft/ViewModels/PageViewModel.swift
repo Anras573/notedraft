@@ -92,6 +92,27 @@ class PageViewModel: ObservableObject {
         saveChanges()
     }
     
+    /// Sets a custom background image for the page
+    /// - Parameter image: The image to use as background
+    /// - Throws: ImageStorageError if the image cannot be saved
+    func setBackgroundImage(_ image: UIImage) throws {
+        guard let imageName = saveImageToStorage(image) else {
+            throw ImageStorageError.saveFailed("Failed to save background image to storage")
+        }
+        
+        // Delete old background image if one exists
+        if let oldBackgroundImage = page.backgroundImage {
+            deleteImageFromStorage(oldBackgroundImage)
+            removeCachedImage(oldBackgroundImage)
+        }
+        
+        // Update page with new background image
+        page.backgroundImage = imageName
+        page.backgroundType = .customImage
+        selectedBackgroundType = .customImage
+        saveChanges()
+    }
+    
     func saveDrawing() {
         // Only save if drawing has been loaded to prevent overwriting existing data
         guard isDrawingLoaded else { return }

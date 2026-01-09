@@ -124,7 +124,8 @@ struct PageCanvasContent: View {
             // Layer 1: Background
             BackgroundView(
                 backgroundType: viewModel.selectedBackgroundType,
-                customImageName: viewModel.page.backgroundImage
+                customImageName: viewModel.page.backgroundImage,
+                viewModel: viewModel
             )
             
             // Layer 2: Content Images
