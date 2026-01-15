@@ -195,13 +195,39 @@ xcodebuild -project NoteDraft/NoteDraft.xcodeproj \
            -destination 'platform=iOS Simulator,OS=17.0,name=iPad Pro (12.9-inch)'
 ```
 
+### Testing
+
+NoteDraft follows a comprehensive testing strategy to ensure reliability and quality. See [TEST_STRATEGY.md](TEST_STRATEGY.md) for detailed testing guidelines.
+
+**Test Types:**
+- **Unit Tests** (60-70%) - Models and ViewModels
+- **Integration Tests** (20-30%) - Component interactions
+- **UI Tests** (5-10%) - Critical user workflows
+
+**Coverage Goals:**
+- Models: 90-100%
+- ViewModels: 80-90%
+- DataStore: 80-90%
+- Overall: 70%+
+
+**Running Tests:**
+```bash
+# In Xcode: ⌘U
+# Or via command line:
+xcodebuild test -project NoteDraft/NoteDraft.xcodeproj \
+           -scheme NoteDraft \
+           -destination 'platform=iOS Simulator,name=iPad Pro (12.9-inch)'
+```
+
 ### Contributing
 
 1. Review the specifications in `/specs`
-2. Follow the existing MVVM architecture
-3. Maintain minimal, focused changes
-4. Test on iPad simulator before submitting
-5. Ensure persistence works correctly
+2. Review the test strategy in `TEST_STRATEGY.md`
+3. Follow the existing MVVM architecture
+4. Write tests for new features
+5. Maintain minimal, focused changes
+6. Test on iPad simulator before submitting
+7. Ensure persistence works correctly
 
 ## Design Decisions
 
@@ -267,6 +293,7 @@ This project is part of a learning exercise.
 ## Links
 
 - [Specifications](specs/)
+- [Test Strategy](TEST_STRATEGY.md)
 - [Missing Features Analysis](MISSING_FEATURES.md)
 - [Development Instructions](.github/copilot-instructions.md)
 
