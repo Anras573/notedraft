@@ -34,9 +34,10 @@ NoteDraft is an intuitive, distraction-free digital notebook app designed specif
   - **Blank**: Clean white canvas
   - **Lined**: Perfect for handwriting
   - **Grid**: Ideal for diagrams and sketches
-  - **Custom Image**: Use any image as a background (UI for selection in progress)
+  - **Custom Image**: Use any image as a background
 - Independent background per page
 - Background renders beneath all content
+- Photo picker UI for selecting custom background images
 
 #### Image Insertion
 - Insert images from photo library onto pages
@@ -58,7 +59,7 @@ NoteDraft is an intuitive, distraction-free digital notebook app designed specif
 
 ### 🚧 In Progress
 
-- **Custom Background Image Selection UI**: Infrastructure exists, photo picker integration pending
+*No features currently in progress - all MVP features are complete!*
 
 ### 📋 Planned (Future Enhancements)
 
@@ -273,4 +274,4 @@ This project is part of a learning exercise.
 
 **Version**: 1.0  
 **Last Updated**: January 2026  
-**Status**: Active Development (95% feature complete)
+**Status**: MVP Complete — 100% feature coverage of specifications

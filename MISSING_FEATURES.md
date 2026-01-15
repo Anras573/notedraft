@@ -3,7 +3,8 @@
 ## Overview
 This document identifies features specified in the `/specs` directory that are not yet implemented in the NoteDraft app.
 
-**Analysis Date:** 2026-01-09  
+**Analysis Date:** 2026-01-15  
+**Last Update:** 2026-01-15  
 **Specifications Reviewed:**
 - `/specs/overview.md`
 - `/specs/user-stories.md`
@@ -13,13 +14,14 @@ This document identifies features specified in the `/specs` directory that are n
 ---
 
 ## Summary
-The NoteDraft app has achieved excellent coverage of the core specifications. Most features from the MVP (Minimum Viable Product) have been implemented. However, one key feature from the specifications is missing:
+The NoteDraft app has achieved **100% feature completeness** for all MVP specifications! All core features have been fully implemented, including the previously missing custom background image selection feature.
 
-### Missing Feature: Custom Background Image Selection
+### Previously Missing Feature: Custom Background Image Selection
 
-**Status:** ❌ Not Implemented  
+**Status:** ✅ **NOW IMPLEMENTED**  
 **Priority:** High (specified in core features)  
-**Specification Reference:** `specs/overview.md` Section 4 (Backgrounds), `specs/user-stories.md` (Backgrounds section)
+**Specification Reference:** `specs/overview.md` Section 4 (Backgrounds), `specs/user-stories.md` (Backgrounds section)  
+**Implementation Date:** Between 2026-01-09 and 2026-01-15
 
 ---
 
@@ -27,7 +29,7 @@ The NoteDraft app has achieved excellent coverage of the core specifications. Mo
 
 ### 1. Custom Background Image Selection
 
-#### What's Specified
+#### What Was Specified
 According to `specs/overview.md` and `specs/user-stories.md`:
 
 **Feature Description:**
@@ -46,61 +48,70 @@ According to `specs/overview.md` and `specs/user-stories.md`:
   - And I can continue drawing on top
 ```
 
-#### What's Implemented
-The app currently has:
+#### What's Now Implemented ✅
+
+The feature is now **fully implemented** with the following components:
+
+**Data Model:**
 - ✅ `BackgroundType` enum with `.customImage` case (in `Models/BackgroundType.swift`)
 - ✅ `Page` model with `backgroundImage: String?` property to store custom background filename
-- ✅ `BackgroundView` that can render a custom image background when provided
-- ✅ Background type selection menu in `PageView` toolbar
+- ✅ `BackgroundView` that renders custom image backgrounds properly
 
-#### What's Missing
-- ❌ **Photo picker UI for selecting a custom background image**
-  - The background type menu allows selecting `.customImage` type, but there's no way to actually choose which image to use
-  - When `.customImage` is selected without a `backgroundImage` filename, the view falls back to blank background
-  
-- ❌ **Integration between photo picker and background image**
-  - No mechanism to trigger a photo picker when user wants to set a custom background
-  - No code to save the selected background image to the Documents directory
-  - No code to update the `Page.backgroundImage` property with the saved filename
+**UI Components:**
+- ✅ Background type selection menu in `PageView` toolbar (lines 44-60)
+- ✅ Dedicated PhotosPicker for background images (lines 62-70 in `PageView.swift`)
+- ✅ PhotosPicker appears conditionally when `.customImage` type is selected
+- ✅ Clear accessibility labels for the background image picker
 
-#### Implementation Gap Details
+**ViewModel Logic:**
+- ✅ `setBackgroundImage(_ image: UIImage)` method in `PageViewModel` (lines 98-114)
+- ✅ Saves background image to Documents directory with proper error handling
+- ✅ Updates `Page.backgroundImage` property with the saved filename
+- ✅ Triggers automatic save operation
+- ✅ Proper error handling with `ImageStorageError` enum
 
-**Current Implementation:**
+**Implementation Details:**
 ```swift
-// PageView.swift - lines 40-57
+// PageView.swift - Background image picker (lines 62-70)
 ToolbarItem(placement: .topBarLeading) {
-    Menu {
-        ForEach(BackgroundType.allCases) { type in
-            Button {
-                viewModel.setBackgroundType(type)  // ⚠️ No photo picker triggered
-            } label: {
-                HStack {
-                    Text(type.displayName)
-                    if viewModel.selectedBackgroundType == type {
-                        Image(systemName: "checkmark")
-                    }
-                }
-            }
+    if viewModel.selectedBackgroundType == .customImage {
+        PhotosPicker(selection: $selectedBackgroundPhotoItem, matching: .images) {
+            Image(systemName: "photo.fill.on.rectangle.fill")
         }
-    } label: {
-        Image(systemName: "photo.on.rectangle")
+        .accessibilityLabel("Select background image")
     }
+}
+
+// PageViewModel.swift - Background image setter (lines 98-114)
+func setBackgroundImage(_ image: UIImage) throws {
+    guard let imageName = saveImageToStorage(image) else {
+        throw ImageStorageError.saveFailed("Failed to save background image to storage")
+    }
+    
+    // Delete old background image after successfully saving the new one
+    if let oldBackgroundImage = page.backgroundImage {
+        deleteImageFromStorage(oldBackgroundImage)
+        removeCachedImage(oldBackgroundImage)
+    }
+    
+    // Update page with new background image
+    page.backgroundImage = imageName
+    page.backgroundType = .customImage
+    selectedBackgroundType = .customImage
+    saveChanges()
 }
 ```
 
-**What's Needed:**
-1. A separate photo picker for background images (distinct from the content image picker)
-2. Logic to detect when `.customImage` is selected and prompt for image selection
-3. Implementation in `PageViewModel` to:
-   - Save background image to storage (similar to content image storage)
-   - Update `Page.backgroundImage` with the filename
-   - Trigger a save operation
-4. UI flow:
-   - User selects "Custom Image" from background type menu
-   - Photo picker appears automatically
-   - User selects an image
-   - Image is saved and set as background
-   - Background view updates to show the custom image
+**User Flow:**
+1. User selects "Custom Image" from background type menu ✅
+2. A dedicated photo picker button appears in the toolbar ✅
+3. User taps the photo picker button ✅
+4. System photo picker opens ✅
+5. User selects an image ✅
+6. Image is saved to Documents/images/ directory ✅
+7. `Page.backgroundImage` is updated with the filename ✅
+8. Background view automatically updates to show the custom image ✅
+9. All changes are persisted ✅
 
 ---
 
@@ -124,11 +135,11 @@ ToolbarItem(placement: .topBarLeading) {
    - ✅ Undo/redo support (toolbar buttons in `PageView.swift`)
    - ✅ Autosave on page exit (`PageView.onDisappear`)
 
-4. **Backgrounds (Partial)**
+4. **Backgrounds (Complete)**
    - ✅ Blank background
    - ✅ Lined background pattern
    - ✅ Grid background pattern
-   - ❌ Custom image background selection (as detailed above)
+   - ✅ Custom image background selection (now fully implemented)
 
 5. **Persistence**
    - ✅ Codable models (`Notebook.swift`, `Page.swift`)
@@ -217,49 +228,28 @@ The following features are mentioned in specs as "Future Enhancements" and are c
 
 ---
 
-## Recommendations
-
-### Priority 1: Implement Custom Background Image Selection
-This is the only core feature from the base specifications that is missing. It should be implemented to complete the MVP feature set.
-
-**Suggested Implementation Approach:**
-1. Add a `@State` variable for background image photo picker in `PageView.swift`
-2. Add a separate photo picker button or integrate into the background type menu
-3. Implement `setBackgroundImage(_ image: UIImage)` method in `PageViewModel` (similar to `addImage`)
-4. Handle the photo selection flow:
-   ```swift
-   // When .customImage is selected AND no backgroundImage exists
-   // OR when user explicitly chooses "Change Background Image"
-   // 1. Show photo picker
-   // 2. Save selected image
-   // 3. Update page.backgroundImage
-   ```
-
-### Priority 2: Documentation
-- Update `README.md` to reflect the missing feature
-- Add user documentation explaining how to use all features once complete
-
-### Priority 3: Testing
-- Test custom background image selection with various image sizes
-- Test interaction between custom backgrounds and content images
-- Verify proper cleanup when background images are changed or removed
-
----
-
 ## Conclusion
 
-The NoteDraft app has achieved approximately **95% feature completeness** based on the MVP specifications. The implementation quality is high, with good architecture, proper MVVM pattern usage, and thoughtful performance optimizations.
+The NoteDraft app has achieved **100% feature completeness** based on the MVP specifications! All core features are fully implemented with high-quality architecture, proper MVVM pattern usage, and thoughtful performance optimizations.
 
-**The single missing feature** is the ability to select a custom image as a page background through the UI, despite the underlying infrastructure being in place to support this feature.
-
-All other core features specified in the MVP are fully implemented and functional:
-- ✅ Complete notebook management
-- ✅ Complete page management  
-- ✅ Full PencilKit drawing integration
+**All MVP Features Implemented:**
+- ✅ Complete notebook management (create, rename, delete)
+- ✅ Complete page management (add, remove, reorder)
+- ✅ Full PencilKit drawing integration with undo/redo
 - ✅ Complete background patterns (blank, lined, grid)
+- ✅ **Full custom background image selection** ← Previously missing, now complete!
 - ✅ Full content image insertion and management
-- ✅ Continuous page rendering mode
-- ✅ Robust persistence layer
-- ✅ Performance optimizations
+- ✅ Continuous page rendering mode with lazy loading
+- ✅ Robust persistence layer with auto-save
+- ✅ Performance optimizations (image caching, lazy loading, memory management)
 
-Once custom background image selection is implemented, the app will have complete coverage of all MVP features specified in the `/specs` directory.
+**Implementation Quality:**
+- ✅ Clean MVVM architecture
+- ✅ Proper error handling with custom error types
+- ✅ Async/await for modern Swift concurrency
+- ✅ Memory warning handling
+- ✅ Accessibility labels
+- ✅ Image optimization (automatic resizing)
+- ✅ File cleanup on deletion
+
+The app now has **complete coverage of all MVP features** specified in the `/specs` directory. No features are missing from the core specifications.
