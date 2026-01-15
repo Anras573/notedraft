@@ -222,7 +222,7 @@ xcodebuild test -project NoteDraft/NoteDraft.xcodeproj \
 ### Contributing
 
 1. Review the specifications in `/specs`
-2. Review the test strategy in `TEST_STRATEGY.md`
+2. Review the test strategy in `TEST_STRATEGY.md` (its steps intentionally start at 2 to align with the overall workflow)
 3. Follow the existing MVVM architecture
 4. Write tests for new features
 5. Maintain minimal, focused changes
