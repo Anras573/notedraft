@@ -140,11 +140,11 @@ func setBackgroundImage(_ image: UIImage) throws {
    - ✅ Undo/redo support (toolbar buttons in `PageView.swift`)
    - ✅ Autosave on page exit (`PageView.onDisappear`)
 
-4. **Backgrounds (Partial)**
+4. **Backgrounds (Complete)**
    - ✅ Blank background
    - ✅ Lined background pattern
    - ✅ Grid background pattern
-   - ❌ Custom image background selection (as detailed above)
+   - ✅ Custom image background selection (now fully implemented)
 
 5. **Persistence**
    - ✅ Codable models (`Notebook.swift`, `Page.swift`)
