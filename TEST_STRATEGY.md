@@ -521,7 +521,7 @@ final class PageViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.page.images.isEmpty)
     }
     
-    func testClearImageCacheClearsCache() throws {
+    func testClearImageCacheClearsCache() async throws {
         // Given
         let image = createTestImage()
         try viewModel.addImage(image)
@@ -879,7 +879,9 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Select Xcode
-      run: sudo xcode-select -s /Applications/Xcode_15.0.app
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.0'
     
     - name: Run Tests
       run: |
