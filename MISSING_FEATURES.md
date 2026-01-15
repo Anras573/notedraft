@@ -64,7 +64,7 @@ The feature is now **fully implemented** with the following components:
 - ✅ Clear accessibility labels for the background image picker
 
 **ViewModel Logic:**
-- ✅ `setBackgroundImage(_ image: UIImage)` method in `PageViewModel` (lines 98-106)
+- ✅ `setBackgroundImage(_ image: UIImage)` method in `PageViewModel` (lines 98-114)
 - ✅ Saves background image to Documents directory with proper error handling
 - ✅ Updates `Page.backgroundImage` property with the saved filename
 - ✅ Triggers automatic save operation
