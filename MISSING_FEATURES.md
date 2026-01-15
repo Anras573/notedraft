@@ -84,25 +84,20 @@ ToolbarItem(placement: .topBarLeading) {
 
 // PageViewModel.swift - Background image setter (lines 98-114)
 func setBackgroundImage(_ image: UIImage) throws {
-    // Keep track of the previously assigned background image (if any)
-    let previousImageName = page.backgroundImage
-
-    // Persist the new image to storage
     guard let imageName = saveImageToStorage(image) else {
         throw ImageStorageError.saveFailed("Failed to save background image to storage")
     }
-
-    // Clean up the old background image from disk and cache, if it exists
-    if let previousImageName, previousImageName != imageName {
-        deleteImageFromStorage(named: previousImageName)
-        imageCache.removeValue(forKey: previousImageName)
+    
+    // Delete old background image after successfully saving the new one
+    if let oldBackgroundImage = page.backgroundImage {
+        deleteImageFromStorage(oldBackgroundImage)
+        removeCachedImage(oldBackgroundImage)
     }
-
-    // Update page background properties
+    
+    // Update page with new background image
     page.backgroundImage = imageName
     page.backgroundType = .customImage
-
-    // Persist page changes
+    selectedBackgroundType = .customImage
     saveChanges()
 }
 ```
