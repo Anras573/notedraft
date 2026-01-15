@@ -886,7 +886,7 @@ jobs:
     - name: Select Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.0'
+        xcode-version: 'latest-stable'
     
     - name: Run Tests
       run: |
