@@ -193,9 +193,13 @@ final class NotebookTests: XCTestCase {
         XCTAssertEqual(notebook.pages.count, decodedNotebook.pages.count)
     }
     
-    func testNotebookDefaultInitialization() {
+    func testNotebookEmptyInitialization() {
         // When
-        let notebook = Notebook()
+        let notebook = Notebook(
+            id: UUID(),
+            name: "Untitled Notebook",
+            pages: []
+        )
         
         // Then
         XCTAssertEqual(notebook.name, "Untitled Notebook")
