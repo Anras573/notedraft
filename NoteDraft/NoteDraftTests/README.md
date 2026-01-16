@@ -7,7 +7,7 @@ This directory contains comprehensive unit tests for all NoteDraft model classes
 ### ModelTests/
 - **NotebookTests.swift** - Tests for the `Notebook` model (13 test methods)
 - **PageTests.swift** - Tests for the `Page` model (21 test methods)
-- **BackgroundTypeTests.swift** - Tests for the `BackgroundType` enum (16 test methods)
+- **BackgroundTypeTests.swift** - Tests for the `BackgroundType` enum (23 test methods)
 - **PageImageTests.swift** - Tests for the `PageImage` model (23 test methods)
 
 ## Test Coverage
