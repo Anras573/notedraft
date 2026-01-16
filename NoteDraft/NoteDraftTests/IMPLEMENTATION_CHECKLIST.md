@@ -11,10 +11,10 @@ This checklist helps verify that all model tests have been properly implemented 
 - [x] Created `README.md` with comprehensive documentation
 
 ### Test Files Created
-- [x] `NotebookTests.swift` - 16 test methods
+- [x] `NotebookTests.swift` - 13 test methods
 - [x] `PageTests.swift` - 21 test methods  
-- [x] `BackgroundTypeTests.swift` - 16 test methods
-- [x] `PageImageTests.swift` - 27 test methods
+- [x] `BackgroundTypeTests.swift` - 23 test methods
+- [x] `PageImageTests.swift` - 23 test methods
 
 ### Test Content Quality
 - [x] All test files import `XCTest`
