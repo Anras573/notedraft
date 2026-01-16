@@ -8,7 +8,7 @@ This directory contains comprehensive unit tests for all NoteDraft model classes
 - **NotebookTests.swift** - Tests for the `Notebook` model (16 test methods)
 - **PageTests.swift** - Tests for the `Page` model (21 test methods)
 - **BackgroundTypeTests.swift** - Tests for the `BackgroundType` enum (16 test methods)
-- **PageImageTests.swift** - Tests for the `PageImage` model (22 test methods)
+- **PageImageTests.swift** - Tests for the `PageImage` model (27 test methods)
 
 ## Test Coverage
 
@@ -151,9 +151,9 @@ When all tests pass, you should see:
 ✓ NotebookTests (16 tests)
 ✓ PageTests (21 tests)
 ✓ BackgroundTypeTests (16 tests)
-✓ PageImageTests (22 tests)
+✓ PageImageTests (27 tests)
 
-Total: 75 tests passed
+Total: 80 tests passed
 ```
 
 ## Troubleshooting
@@ -193,4 +193,4 @@ See **TEST_STRATEGY.md** in the repository root for the complete testing roadmap
 **Created:** January 16, 2026  
 **Test Framework:** XCTest  
 **iOS Target:** 17.0+  
-**Total Tests:** 75
+**Total Tests:** 80
