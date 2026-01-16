@@ -148,10 +148,10 @@ Examples:
 
 When all tests pass, you should see:
 ```
-✓ NotebookTests (16 tests)
+✓ NotebookTests (13 tests)
 ✓ PageTests (21 tests)
-✓ BackgroundTypeTests (16 tests)
-✓ PageImageTests (27 tests)
+✓ BackgroundTypeTests (23 tests)
+✓ PageImageTests (23 tests)
 
 Total: 80 tests passed
 ```

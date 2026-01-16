@@ -72,10 +72,10 @@ This checklist helps verify that all model tests have been properly implemented 
 
 | Model | Test File | Test Methods | Coverage Target | Status |
 |-------|-----------|--------------|-----------------|--------|
-| Notebook | NotebookTests.swift | 16 | 90-100% | ✅ Ready |
+| Notebook | NotebookTests.swift | 13 | 90-100% | ✅ Ready |
 | Page | PageTests.swift | 21 | 90-100% | ✅ Ready |
-| BackgroundType | BackgroundTypeTests.swift | 16 | 90-100% | ✅ Ready |
-| PageImage | PageImageTests.swift | 27 | 90-100% | ✅ Ready |
+| BackgroundType | BackgroundTypeTests.swift | 23 | 90-100% | ✅ Ready |
+| PageImage | PageImageTests.swift | 23 | 90-100% | ✅ Ready |
 
 ## 📝 Notes
 
