@@ -23,8 +23,9 @@ This project follows a **spec-driven development** approach — all code must al
    - Autosave when leaving a page.
 
 4. **Backgrounds**
-   - Select a background (blank, lined, grid, or image).
+   - Select a background (blank, lined, grid, image, or PDF page).
    - Background is rendered beneath the drawing layer.
+   - Import a PDF and use its pages as backgrounds for annotation.
 
 5. **Persistence**
    - Store data locally using Codable models and FileManager.
@@ -49,8 +50,16 @@ struct Notebook: Identifiable, Codable {
 
 struct Page: Identifiable, Codable {
     let id: UUID
-    var backgroundImage: String?
+    var backgroundType: BackgroundType
+    var backgroundImage: String?    // Custom image background filename
+    var pdfBackground: PDFBackground? // PDF page background (see pdf-background.md)
+    var images: [PageImage]
     var drawingData: Data?
+}
+
+struct PDFBackground: Codable, Equatable {
+    var pdfName: String  // UUID-based filename in Documents/pdfs/
+    var pageIndex: Int   // Zero-based page index
 }
 ```
 

@@ -60,3 +60,28 @@
   - When I choose a background (grid, lined, or custom image)
   - Then it replaces the old background
   - And I can continue drawing on top
+
+- **Import PDF as background**
+  - Given I am viewing a notebook
+  - When I tap "Import PDF" and select a PDF file
+  - Then one page is created per PDF page
+  - And each page's background shows the corresponding PDF page
+  - And I can draw on top of each page immediately
+
+- **Annotate a PDF page**
+  - Given I have a notebook page with a PDF page as its background
+  - When I draw with Apple Pencil on that page
+  - Then my drawing appears on top of the PDF content
+  - And the drawing is saved automatically
+
+- **Assign PDF page background manually**
+  - Given I am on a page
+  - When I choose "PDF Page" from the background selector
+  - Then I can select an imported PDF and choose a specific page
+  - And that PDF page becomes the background
+
+- **Handle missing PDF**
+  - Given a page references a PDF that is no longer available
+  - When I open that page
+  - Then a placeholder is shown indicating the PDF is unavailable
+  - And I can still draw on the page and change the background
