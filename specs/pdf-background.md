@@ -226,10 +226,35 @@ class PDFStorageService {
     func pageCount(for pdfName: String) -> Int?
     
     /// Renders a specific page of a stored PDF as a UIImage at the given size.
-    func renderPage(index: Int, of pdfName: String, at size: CGSize) -> UIImage?
+    /// Implementations must perform rendering off the main thread.
+    func renderPage(index: Int, of pdfName: String, at size: CGSize) async -> UIImage?
     
     /// Returns thumbnail UIImages for all pages of a stored PDF.
-    func thumbnails(for pdfName: String, size: CGSize) -> [UIImage]
+    /// Implementations must perform rendering off the main thread.
+    func thumbnails(for pdfName: String, size: CGSize) async -> [UIImage]
+    
+    /// Deletes any PDF files from storage that are not referenced by the provided set of names.
+    /// Call this from `NotebookViewModel` or `DataStore` after any page/notebook deletion.
+    func deleteUnreferencedPDFs(keeping referencedNames: Set<String>)
+}
+```
+
+### `NotebookViewModel` Changes
+```swift
+class NotebookViewModel: ObservableObject {
+    // ... existing properties ...
+    
+    // NEW: PDF import support
+    
+    /// Imports a PDF from a security-scoped file URL, stores it via PDFStorageService,
+    /// and appends one new Page per PDF page to the notebook.
+    /// Must be called on the main actor; performs PDF processing off the main thread.
+    func importPDF(from url: URL) async throws
+    
+    /// Collects all pdfName values referenced by pages in the notebook and calls
+    /// PDFStorageService.shared.deleteUnreferencedPDFs(keeping:) to clean up orphaned files.
+    /// Call this after deleting pages or notebooks.
+    func cleanupUnreferencedPDFs()
 }
 ```
 
@@ -240,17 +265,12 @@ class PageViewModel: ObservableObject {
     
     // NEW: PDF background support
     
-    /// Imports a PDF from a file URL, stores it, and returns created pages (one per PDF page).
-    func importPDF(from url: URL) throws -> [Page]
-    
     /// Sets the PDF background for the current page.
     func setPDFBackground(pdfName: String, pageIndex: Int)
     
     /// Loads and caches the rendered UIImage for the current PDF background page.
-    func loadPDFBackgroundImage() -> UIImage?
-    
-    /// Cleans up unreferenced PDF files from storage.
-    func cleanupUnreferencedPDFs(referencedNames: Set<String>)
+    /// Rendering is performed off the main thread via PDFStorageService.
+    func loadPDFBackgroundImage() async -> UIImage?
 }
 ```
 
@@ -262,7 +282,7 @@ struct BackgroundView: View {
     let backgroundType: BackgroundType
     var customImageName: String? = nil
     var pdfBackground: PDFBackground? = nil       // NEW
-    @ObservedObject var viewModel: PageViewModel  // needed to load PDF image
+    let viewModel: PageViewModel? = nil           // optional; must be non-nil when backgroundType == .pdfPage
     
     var body: some View {
         switch backgroundType {
@@ -285,40 +305,57 @@ struct BackgroundView: View {
 
 struct PDFPageBackgroundView: View {
     let pdfBackground: PDFBackground?
-    @ObservedObject var viewModel: PageViewModel
+    let viewModel: PageViewModel?
+    
+    @State private var loadedBackgroundImage: UIImage?
     
     var body: some View {
         GeometryReader { geometry in
-            if let pdfBackground,
-               let image = viewModel.loadPDFBackgroundImage() {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: geometry.size.width)
-            } else {
-                // Placeholder when PDF is unavailable
-                ZStack {
-                    Color(UIColor.secondarySystemBackground)
-                    VStack(spacing: 8) {
-                        Image(systemName: "doc.fill.badge.exclamationmark")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("PDF unavailable")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            Group {
+                if let image = loadedBackgroundImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width)
+                } else if pdfBackground != nil {
+                    // Loading indicator while the PDF page is being rendered
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        ProgressView()
+                    }
+                } else {
+                    // Placeholder when PDF reference is nil or file is unavailable
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.fill.badge.exclamationmark")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text("PDF unavailable")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
+            }
+            .task(id: pdfBackground) {
+                guard let viewModel, pdfBackground != nil else {
+                    loadedBackgroundImage = nil
+                    return
+                }
+                // Load and cache the PDF page image off the main render path
+                loadedBackgroundImage = await viewModel.loadPDFBackgroundImage()
             }
         }
     }
 }
 ```
 
-### `PageView` Toolbar Changes
-Add import and page navigation controls:
+### `NotebookView` Toolbar Changes
+Add the "Import PDF" button to `NotebookView`'s toolbar, where it has access to the notebook-level `NotebookViewModel`:
 
 ```swift
-// Import PDF button (in NotebookView or PageView toolbar)
+// Import PDF button — placed in NotebookView toolbar
 ToolbarItem(placement: .topBarLeading) {
     Button {
         showPDFImporter = true
@@ -327,8 +364,13 @@ ToolbarItem(placement: .topBarLeading) {
     }
     .accessibilityLabel("Import PDF")
 }
+```
 
-// PDF page selector when backgroundType == .pdfPage
+### `PageView` Toolbar Changes
+Add a PDF page selector button to `PageView`'s toolbar (visible only when the active background is `.pdfPage`):
+
+```swift
+// PDF page selector — shown only when backgroundType == .pdfPage
 ToolbarItem(placement: .topBarLeading) {
     if viewModel.selectedBackgroundType == .pdfPage {
         Button {
@@ -349,6 +391,7 @@ struct PDFPagePickerView: View {
     let pdfName: String
     let onSelect: (Int) -> Void   // Called with the selected zero-based page index
     
+    @Environment(\.dismiss) private var dismiss
     @State private var thumbnails: [UIImage] = []
     
     var body: some View {
@@ -375,6 +418,17 @@ struct PDFPagePickerView: View {
             }
             .navigationTitle("Select PDF Page")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+            .task {
+                thumbnails = await PDFStorageService.shared.thumbnails(
+                    for: pdfName,
+                    size: CGSize(width: 300, height: 400)
+                )
+            }
         }
     }
 }
@@ -397,7 +451,7 @@ Documents/
 - In continuous view, prefetch the immediate next and previous page renders
 - Thumbnail generation for the PDF page picker uses lower resolution (e.g., 150×200 pt)
 - All rendering happens on a background `DispatchQueue`; main thread is only used for UI updates
-- Maximum rendered image size: native device screen width (use `UIScreen.main.nativeBounds.width` at render time to remain accurate across all current and future iPad models)
+- Maximum rendered image size: native device screen width, derived from the active window or view (use `GeometryReader` in SwiftUI or the active `UIWindowScene`'s screen bounds in UIKit; do not use `UIScreen.main`, which is deprecated in iPadOS 16+)
 
 ---
 
@@ -464,8 +518,8 @@ The background type picker gains a new option:
 4. Handle transitions from/to other background types (preserve drawing).
 
 ### Phase 5: Lifecycle & Cleanup
-1. Implement PDF reference counting across notebooks.
-2. Delete unreferenced PDF files when pages are deleted.
+1. Add `deleteUnreferencedPDFs(keeping:)` to `PDFStorageService`.
+2. Add `cleanupUnreferencedPDFs()` to `NotebookViewModel`; call it after any page or notebook deletion.
 3. Handle missing PDF files gracefully in `PDFPageBackgroundView`.
 
 ### Phase 6: Performance & Polish
@@ -485,7 +539,7 @@ The background type picker gains a new option:
 - Cap the maximum number of pages auto-imported in a single operation (e.g., 100 pages). If the PDF exceeds this limit, import only the first 100 pages and show a non-blocking alert informing the user that only the first 100 pages were imported, along with the total page count.
 
 ### High-Resolution Pages
-- Render at native device screen resolution (use `UIScreen.main.nativeBounds.width` at render time).
+- Render at native device screen resolution using the available view size from `GeometryReader` (or the active `UIWindowScene`'s screen bounds when a concrete pixel size is needed outside of a view context).
 - For thumbnails in the picker, use a lower resolution (300px wide).
 
 ### Corrupt or Password-Protected PDFs
