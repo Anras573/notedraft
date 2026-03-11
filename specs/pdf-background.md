@@ -84,10 +84,13 @@ This specification describes a first-class PDF import and annotation experience 
 - **Given** I am viewing a notebook
 - **When** I tap the "Import PDF" toolbar button
 - **Then** The system file picker opens, filtered to PDF files
-- **When** I select a PDF with N pages
+- **When** I select a PDF with N pages (where N ≤ 100)
 - **Then** N new pages are appended to the notebook
 - **And** Each page's background shows the corresponding PDF page
 - **And** I can immediately draw on top of each page
+- **When** I select a PDF with more than 100 pages
+- **Then** Only the first 100 pages are imported and 100 pages are appended to the notebook
+- **And** A non-blocking alert informs me that only the first 100 pages were imported, along with the total page count
 
 ### Draw on a PDF-Backed Page
 - **Given** I have a notebook page with a PDF page as its background
@@ -252,9 +255,12 @@ class NotebookViewModel: ObservableObject {
     /// Must be called on the main actor; performs PDF processing off the main thread.
     func importPDF(from url: URL) async throws
     
-    /// Collects all pdfName values referenced by pages in the notebook and calls
-    /// PDFStorageService.shared.deleteUnreferencedPDFs(keeping:) to clean up orphaned files.
-    /// Call this after deleting pages or notebooks.
+    /// Triggers cleanup of unreferenced PDFs using a **global** reference set.
+    /// Implementations must obtain all pdfName values referenced by pages across all notebooks
+    /// (e.g., by querying `DataStore`) and then call
+    /// `PDFStorageService.shared.deleteUnreferencedPDFs(keeping:)` with that global set.
+    /// Call this after deleting pages or notebooks to ensure that only truly orphaned PDFs
+    /// (not referenced by any page in any notebook) are removed.
     func cleanupUnreferencedPDFs()
 }
 ```
@@ -461,7 +467,7 @@ Documents/
 ### Visual Design
 - **PDF background**: Rendered page fills the full canvas width; background is white if the PDF page has no background.
 - **Unavailable placeholder**: Secondary background color with a document warning icon and descriptive text.
-- **PDF page picker**: A modal sheet with a scrollable 2-column thumbnail grid.
+- **PDF page picker**: A modal sheet with a scrollable adaptive thumbnail grid (minimum two columns on iPad, with additional columns shown on wider layouts as space allows).
 - **Page number badge**: While viewing a PDF-backed page, optionally show a small badge (e.g., "PDF p.3") in the page title or toolbar subtitle.
 
 ### Toolbar Controls
@@ -541,7 +547,7 @@ The background type picker gains a new option:
 
 ### High-Resolution Pages
 - Render at native device screen resolution using the available view size from `GeometryReader` (or the active `UIWindowScene`'s screen bounds when a concrete pixel size is needed outside of a view context).
-- For thumbnails in the picker, use a lower resolution (300px wide).
+- For thumbnails in the picker, use a lower resolution (approximately 300pt wide, preserving the PDF page's aspect ratio; render at the device's screen scale when rasterizing).
 
 ### Corrupt or Password-Protected PDFs
 - If the PDF cannot be opened (corrupt or requires a password), show an alert and abort the import.
