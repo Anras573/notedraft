@@ -23,7 +23,7 @@ This project follows a **spec-driven development** approach — all code must al
    - Autosave when leaving a page.
 
 4. **Backgrounds**
-   - Select a background (blank, lined, grid, image, or PDF page).
+   - Select a background (blank, lined, grid, custom image, or PDF page).
    - Background is rendered beneath the drawing layer.
    - Import a PDF and use its pages as backgrounds for annotation.
 

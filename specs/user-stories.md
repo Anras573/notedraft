@@ -63,7 +63,7 @@
 
 - **Import PDF as background**
   - Given I am viewing a notebook
-  - When I tap "Import PDF" and select a PDF file
+  - When I tap “Import PDF” and select a PDF file
   - Then one page is created per PDF page
   - And each page's background shows the corresponding PDF page
   - And I can draw on top of each page immediately
@@ -76,7 +76,7 @@
 
 - **Assign PDF page background manually**
   - Given I am on a page
-  - When I choose "PDF Page" from the background selector
+  - When I choose “PDF Page” from the background selector
   - Then I can select an imported PDF and choose a specific page
   - And that PDF page becomes the background
 

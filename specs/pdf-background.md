@@ -39,9 +39,10 @@ This specification describes a first-class PDF import and annotation experience 
 - **Description**: A page can use a specific page of an imported PDF as its background.
 - **Behavior**:
   - The PDF page is rendered at full page resolution beneath the PencilKit drawing layer.
-  - The rendered PDF page fills the available canvas width while maintaining aspect ratio; vertical overflow is scrollable.
+  - The rendered PDF page fills the available canvas width while maintaining aspect ratio.
+  - If the resulting PDF page height exceeds the visible canvas height, vertical overflow is revealed by the **existing page scroll container** (e.g., the `ScrollView`/`UIScrollView` that already hosts the PencilKit canvas). The PDF background view itself MUST NOT introduce its own nested or independent scrolling.
   - The background is read-only — the user cannot edit the PDF content itself.
-  - The PDF background renders in the same z-order as other background types (below content images and the drawing canvas).
+  - The PDF background renders in the same z-order as other background types (below content images and the drawing canvas) and shares the same scrolling container as the PencilKit canvas so that strokes and PDF content remain aligned while scrolling.
 
 ### 3. Manual PDF Page Background Selection
 - **Description**: Users can also assign a PDF page as the background for an existing page.
@@ -449,9 +450,9 @@ Documents/
 - Render PDF pages using `PDFKit` (`PDFPage` → `UIGraphicsImageRenderer`)
 - Cache up to 10 rendered page images per session (evict using LRU)
 - In continuous view, prefetch the immediate next and previous page renders
-- Thumbnail generation for the PDF page picker uses lower resolution (e.g., 150×200 pt)
+- Thumbnail generation for the PDF page picker uses lower resolution (e.g., 300×400 pt)
 - All rendering happens on a background `DispatchQueue`; main thread is only used for UI updates
-- Maximum rendered image size: native device screen width, derived from the active window or view (use `GeometryReader` in SwiftUI or the active `UIWindowScene`'s screen bounds in UIKit; do not use `UIScreen.main`, which is deprecated in iPadOS 16+)
+- Maximum rendered image size: native device screen width, derived from the active window or view (use `GeometryReader` in SwiftUI or the active `UIWindowScene`'s screen bounds in UIKit; avoid `UIScreen.main` because it may not reflect the active window/scene size in multi-window setups)
 
 ---
 
