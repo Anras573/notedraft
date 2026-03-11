@@ -314,24 +314,37 @@ struct PDFPageBackgroundView: View {
     let pdfBackground: PDFBackground?
     let viewModel: PageViewModel?
     
-    @State private var loadedBackgroundImage: UIImage?
+    /// Tracks the distinct phases of PDF rendering so the view can show
+    /// a loading indicator while work is in progress and a placeholder once
+    /// loading completes without producing an image (missing or corrupt PDF).
+    private enum LoadPhase {
+        case idle        // task has not started yet (initial state)
+        case loading     // awaiting renderPage result
+        case loaded(UIImage)  // render succeeded — image ready to display
+        case unavailable // render returned nil or viewModel/pdfBackground is nil
+    }
+    
+    @State private var loadPhase: LoadPhase = .idle
     
     var body: some View {
         GeometryReader { geometry in
             Group {
-                if let image = loadedBackgroundImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: geometry.size.width)
-                } else if pdfBackground != nil {
-                    // Loading indicator while the PDF page is being rendered
+                switch loadPhase {
+                case .loading, .idle:
+                    // Show a spinner while the PDF page is being rendered.
+                    // .idle is treated as loading because the .task fires immediately.
                     ZStack {
                         Color(UIColor.secondarySystemBackground)
                         ProgressView()
                     }
-                } else {
-                    // Placeholder when PDF reference is nil or file is unavailable
+                case .loaded(let image):
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width)
+                case .unavailable:
+                    // Shown when pdfBackground is nil, viewModel is nil,
+                    // or the PDF file cannot be rendered (missing/corrupt).
                     ZStack {
                         Color(UIColor.secondarySystemBackground)
                         VStack(spacing: 8) {
@@ -346,12 +359,19 @@ struct PDFPageBackgroundView: View {
                 }
             }
             .task(id: pdfBackground) {
+                // If there is no PDF background or no view model, mark unavailable immediately.
                 guard let viewModel, pdfBackground != nil else {
-                    loadedBackgroundImage = nil
+                    loadPhase = .unavailable
                     return
                 }
-                // Load and cache the PDF page image off the main render path
-                loadedBackgroundImage = await viewModel.loadPDFBackgroundImage()
+                loadPhase = .loading
+                // Load the PDF page image off the main render path.
+                if let image = await viewModel.loadPDFBackgroundImage() {
+                    loadPhase = .loaded(image)
+                } else {
+                    // Render returned nil — file is missing or corrupt.
+                    loadPhase = .unavailable
+                }
             }
         }
     }

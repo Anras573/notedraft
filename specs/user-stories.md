@@ -63,10 +63,13 @@
 
 - **Import PDF as background**
   - Given I am viewing a notebook
-  - When I tap “Import PDF” and select a PDF file
+  - When I tap “Import PDF” and select a PDF file with 100 or fewer pages
   - Then one page is created per PDF page
-  - And each page's background shows the corresponding PDF page
+  - And each page’s background shows the corresponding PDF page
   - And I can draw on top of each page immediately
+  - When I tap “Import PDF” and select a PDF file with more than 100 pages
+  - Then only the first 100 pages are imported and 100 pages are created
+  - And a non-blocking alert informs me that only the first 100 pages were imported, along with the total page count
 
 - **Annotate a PDF page**
   - Given I have a notebook page with a PDF page as its background
