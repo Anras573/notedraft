@@ -20,6 +20,7 @@ final class PageTests: XCTestCase {
         XCTAssertNotNil(page.id)
         XCTAssertEqual(page.backgroundType, .blank)
         XCTAssertNil(page.backgroundImage)
+        XCTAssertNil(page.pdfBackground)
         XCTAssertTrue(page.images.isEmpty)
         XCTAssertNil(page.drawingData)
     }
@@ -45,6 +46,7 @@ final class PageTests: XCTestCase {
         XCTAssertEqual(page.id, id)
         XCTAssertEqual(page.backgroundType, backgroundType)
         XCTAssertEqual(page.backgroundImage, backgroundImage)
+        XCTAssertNil(page.pdfBackground)
         XCTAssertEqual(page.images.count, 1)
         XCTAssertEqual(page.images.first?.imageName, "image1.png")
         XCTAssertEqual(page.drawingData, drawingData)
@@ -134,8 +136,46 @@ final class PageTests: XCTestCase {
         XCTAssertEqual(decodedPage.id, page.id)
         XCTAssertEqual(decodedPage.backgroundType, .blank)
         XCTAssertNil(decodedPage.backgroundImage)
+        XCTAssertNil(decodedPage.pdfBackground)
         XCTAssertTrue(decodedPage.images.isEmpty)
         XCTAssertNil(decodedPage.drawingData)
+    }
+    
+    func testPageEncodingDecodingWithPDFBackground() throws {
+        // Given
+        let pdfBg = PDFBackground(pdfName: "lecture.pdf", pageIndex: 3)
+        let page = Page(backgroundType: .pdfPage, pdfBackground: pdfBg)
+        
+        // When
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(page)
+        let decoder = JSONDecoder()
+        let decodedPage = try decoder.decode(Page.self, from: data)
+        
+        // Then
+        XCTAssertEqual(decodedPage.backgroundType, .pdfPage)
+        XCTAssertEqual(decodedPage.pdfBackground?.pdfName, "lecture.pdf")
+        XCTAssertEqual(decodedPage.pdfBackground?.pageIndex, 3)
+    }
+    
+    func testPageDecodingPreservesNilPDFBackground() throws {
+        // Given – a page encoded without pdfBackground (simulates legacy data)
+        let id = UUID()
+        let json = """
+        {
+            "id": "\(id.uuidString)",
+            "backgroundType": "blank",
+            "images": []
+        }
+        """
+        let data = json.data(using: .utf8)!
+        
+        // When
+        let decoder = JSONDecoder()
+        let page = try decoder.decode(Page.self, from: data)
+        
+        // Then
+        XCTAssertNil(page.pdfBackground)
     }
     
     func testPageDecodingFromJSON() throws {
@@ -226,6 +266,44 @@ final class PageTests: XCTestCase {
         // Then
         XCTAssertEqual(page.backgroundType, .customImage)
         XCTAssertEqual(page.backgroundImage, "my-custom-bg.png")
+    }
+    
+    func testPageWithPDFPageBackground() {
+        // Given
+        let pdfBackground = PDFBackground(pdfName: "document.pdf", pageIndex: 2)
+        
+        // When
+        let page = Page(backgroundType: .pdfPage, pdfBackground: pdfBackground)
+        
+        // Then
+        XCTAssertEqual(page.backgroundType, .pdfPage)
+        XCTAssertEqual(page.pdfBackground?.pdfName, "document.pdf")
+        XCTAssertEqual(page.pdfBackground?.pageIndex, 2)
+    }
+    
+    func testPagePDFBackgroundCanBeModified() {
+        // Given
+        var page = Page(backgroundType: .pdfPage,
+                        pdfBackground: PDFBackground(pdfName: "old.pdf", pageIndex: 0))
+        
+        // When
+        page.pdfBackground = PDFBackground(pdfName: "new.pdf", pageIndex: 5)
+        
+        // Then
+        XCTAssertEqual(page.pdfBackground?.pdfName, "new.pdf")
+        XCTAssertEqual(page.pdfBackground?.pageIndex, 5)
+    }
+    
+    func testPagePDFBackgroundCanBeCleared() {
+        // Given
+        var page = Page(backgroundType: .pdfPage,
+                        pdfBackground: PDFBackground(pdfName: "doc.pdf", pageIndex: 0))
+        
+        // When
+        page.pdfBackground = nil
+        
+        // Then
+        XCTAssertNil(page.pdfBackground)
     }
     
     // MARK: - Property Mutation Tests
