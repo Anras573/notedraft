@@ -17,11 +17,12 @@ final class BackgroundTypeTests: XCTestCase {
         let allCases = BackgroundType.allCases
         
         // Then
-        XCTAssertEqual(allCases.count, 4)
+        XCTAssertEqual(allCases.count, 5)
         XCTAssertTrue(allCases.contains(.blank))
         XCTAssertTrue(allCases.contains(.lined))
         XCTAssertTrue(allCases.contains(.grid))
         XCTAssertTrue(allCases.contains(.customImage))
+        XCTAssertTrue(allCases.contains(.pdfPage))
     }
     
     // MARK: - Raw Value Tests
@@ -58,9 +59,15 @@ final class BackgroundTypeTests: XCTestCase {
         XCTAssertEqual(backgroundType.rawValue, "customImage")
     }
     
-    // MARK: - Identifiable Tests
+    func testPDFPageBackgroundTypeRawValue() {
+        // Given
+        let backgroundType = BackgroundType.pdfPage
+        
+        // Then
+        XCTAssertEqual(backgroundType.rawValue, "pdfPage")
+    }
     
-    func testBackgroundTypeIdMatchesRawValue() {
+
         // Test all cases
         for backgroundType in BackgroundType.allCases {
             // Then
@@ -108,6 +115,14 @@ final class BackgroundTypeTests: XCTestCase {
         
         // Then
         XCTAssertEqual(backgroundType.displayName, "Custom Image")
+    }
+    
+    func testPDFPageBackgroundTypeDisplayName() {
+        // Given
+        let backgroundType = BackgroundType.pdfPage
+        
+        // Then
+        XCTAssertEqual(backgroundType.displayName, "PDF Page")
     }
     
     func testAllDisplayNamesAreUnique() {
@@ -187,13 +202,27 @@ final class BackgroundTypeTests: XCTestCase {
         XCTAssertEqual(jsonString, "\"customImage\"")
     }
     
+    func testPDFPageBackgroundTypeEncoding() throws {
+        // Given
+        let backgroundType = BackgroundType.pdfPage
+        
+        // When
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(backgroundType)
+        let jsonString = String(data: data, encoding: .utf8)
+        
+        // Then
+        XCTAssertEqual(jsonString, "\"pdfPage\"")
+    }
+    
     func testBackgroundTypeDecodingFromRawValue() throws {
         // Test decoding all cases from JSON
         let testCases: [(String, BackgroundType)] = [
             ("\"blank\"", .blank),
             ("\"lined\"", .lined),
             ("\"grid\"", .grid),
-            ("\"customImage\"", .customImage)
+            ("\"customImage\"", .customImage),
+            ("\"pdfPage\"", .pdfPage)
         ]
         
         for (json, expectedType) in testCases {
@@ -250,6 +279,8 @@ final class BackgroundTypeTests: XCTestCase {
                 result = "grid"
             case .customImage:
                 result = "customImage"
+            case .pdfPage:
+                result = "pdfPage"
             }
             
             // Then
@@ -268,6 +299,7 @@ final class BackgroundTypeTests: XCTestCase {
         XCTAssertEqual(allCases[1], .lined)
         XCTAssertEqual(allCases[2], .grid)
         XCTAssertEqual(allCases[3], .customImage)
+        XCTAssertEqual(allCases[4], .pdfPage)
     }
     
     func testCaseIterableCanBeIterated() {
@@ -280,6 +312,28 @@ final class BackgroundTypeTests: XCTestCase {
         }
         
         // Then
-        XCTAssertEqual(count, 4)
+        XCTAssertEqual(count, 5)
+    }
+
+    // MARK: - selectableCases Tests
+
+    func testSelectableCasesExcludesPDFPage() {
+        // Given
+        let selectable = BackgroundType.selectableCases
+
+        // Then – pdfPage must not appear in selectable cases until Phase 3
+        XCTAssertFalse(selectable.contains(.pdfPage))
+    }
+
+    func testSelectableCasesContainsAllOtherCases() {
+        // Given
+        let selectable = BackgroundType.selectableCases
+
+        // Then – all non-pdfPage cases should be selectable
+        XCTAssertTrue(selectable.contains(.blank))
+        XCTAssertTrue(selectable.contains(.lined))
+        XCTAssertTrue(selectable.contains(.grid))
+        XCTAssertTrue(selectable.contains(.customImage))
+        XCTAssertEqual(selectable.count, BackgroundType.allCases.count - 1)
     }
 }
