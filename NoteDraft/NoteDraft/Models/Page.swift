@@ -20,8 +20,16 @@ struct Page: Identifiable, Codable {
         }
     }
     var backgroundImage: String?
-    /// PDF page background metadata (nil unless backgroundType == .pdfPage)
-    var pdfBackground: PDFBackground?
+    /// PDF page background metadata (nil unless backgroundType == .pdfPage).
+    /// Direct assignment is also guarded: setting this property while `backgroundType != .pdfPage`
+    /// will immediately clear it back to `nil`.
+    var pdfBackground: PDFBackground? {
+        didSet {
+            if pdfBackground != nil && backgroundType != .pdfPage {
+                pdfBackground = nil
+            }
+        }
+    }
     /// Content images on top of background
     var images: [PageImage]
     var drawingData: Data?

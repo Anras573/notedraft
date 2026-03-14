@@ -351,6 +351,17 @@ final class PageTests: XCTestCase {
         XCTAssertNil(decoded.pdfBackground)
     }
 
+    func testPageDirectAssignmentOfPDFBackgroundClearedWhenNotPDFPageType() {
+        // Given – a non-pdfPage page
+        var page = Page(backgroundType: .grid)
+
+        // When – pdfBackground is assigned directly
+        page.pdfBackground = PDFBackground(pdfName: "direct-assign.pdf", pageIndex: 1)
+
+        // Then – didSet on pdfBackground must clear it since backgroundType != .pdfPage
+        XCTAssertNil(page.pdfBackground)
+    }
+
     // MARK: - Property Mutation Tests
     
     func testPageBackgroundTypeCanBeModified() {
