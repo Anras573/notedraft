@@ -101,7 +101,23 @@ class PDFStorageService {
 
     private func createPDFDirectoryIfNeeded() {
         let dir = pdfDirectory
-        guard !FileManager.default.fileExists(atPath: dir.path) else { return }
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: dir.path, isDirectory: &isDirectory)
+
+        if exists && isDirectory.boolValue {
+            return // Directory already exists — nothing to do
+        }
+
+        if exists && !isDirectory.boolValue {
+            // A plain file occupies the expected directory path; remove it before creating the dir
+            do {
+                try FileManager.default.removeItem(at: dir)
+            } catch {
+                print("PDFStorageService: Failed to remove non-directory at pdfs path: \(error.localizedDescription)")
+                return
+            }
+        }
+
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch {
@@ -113,7 +129,17 @@ class PDFStorageService {
 
     /// Returns the local file URL for a stored PDF by filename.
     func localURL(for pdfName: String) -> URL {
-        pdfDirectory.appendingPathComponent(sanitized(pdfName))
+        let safe = sanitized(pdfName)
+        let candidate = pdfDirectory.appendingPathComponent(safe)
+        // Containment check: ensure the standardized candidate path stays within pdfDirectory.
+        // Using `hasPrefix(dir + "/")` guarantees a proper path-component boundary
+        // (prevents a sibling like "/Documents/pdfs-evil/x" matching "/Documents/pdfs").
+        let resolvedCandidate = candidate.standardized
+        let resolvedDirectory = pdfDirectory.standardized
+        guard resolvedCandidate.path.hasPrefix(resolvedDirectory.path + "/") else {
+            return pdfDirectory.appendingPathComponent(".invalid")
+        }
+        return candidate
     }
 
     /// Copies a PDF from a security-scoped URL into `Documents/pdfs/`.
@@ -242,8 +268,13 @@ class PDFStorageService {
     // MARK: - Private helpers
 
     /// Sanitizes a filename to prevent path traversal.
+    /// Returns `.invalid` for any name that is empty, `.`, `..`, or would escape `pdfDirectory`.
     private func sanitized(_ name: String) -> String {
-        (name as NSString).lastPathComponent
+        let component = (name as NSString).lastPathComponent
+        guard !component.isEmpty, component != ".", component != ".." else {
+            return ".invalid"
+        }
+        return component
     }
 
     /// Renders a single `PDFPage` into a `UIImage` at the given point size.

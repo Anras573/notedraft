@@ -316,7 +316,41 @@ final class PageTests: XCTestCase {
         // Then – init must enforce the invariant and clear pdfBackground
         XCTAssertNil(page.pdfBackground)
     }
-    
+
+    func testPageBackgroundTypeMutationClearsPDFBackground() {
+        // Given – a pdfPage page with pdfBackground set
+        var page = Page(backgroundType: .pdfPage,
+                        pdfBackground: PDFBackground(pdfName: "doc.pdf", pageIndex: 0))
+        XCTAssertNotNil(page.pdfBackground)
+
+        // When – backgroundType is changed away from .pdfPage
+        page.backgroundType = .lined
+
+        // Then – didSet must clear pdfBackground
+        XCTAssertNil(page.pdfBackground)
+    }
+
+    func testPageDecodingEnforcesNilPDFBackgroundForNonPDFPageType() throws {
+        // Given – JSON where backgroundType is "blank" but pdfBackground is present
+        let id = UUID()
+        let json = """
+        {
+            "id": "\(id.uuidString)",
+            "backgroundType": "blank",
+            "pdfBackground": {"pdfName": "should-be-cleared.pdf", "pageIndex": 0},
+            "images": []
+        }
+        """
+        let data = json.data(using: .utf8)!
+
+        // When
+        let decoded = try JSONDecoder().decode(Page.self, from: data)
+
+        // Then – custom init(from:) must enforce the invariant
+        XCTAssertEqual(decoded.backgroundType, .blank)
+        XCTAssertNil(decoded.pdfBackground)
+    }
+
     // MARK: - Property Mutation Tests
     
     func testPageBackgroundTypeCanBeModified() {
