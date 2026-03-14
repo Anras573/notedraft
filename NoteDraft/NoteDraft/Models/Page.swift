@@ -21,7 +21,8 @@ struct Page: Identifiable, Codable {
         self.id = id
         self.backgroundType = backgroundType
         self.backgroundImage = backgroundImage
-        self.pdfBackground = pdfBackground
+        // pdfBackground is only meaningful when backgroundType == .pdfPage; clear it otherwise
+        self.pdfBackground = (backgroundType == .pdfPage) ? pdfBackground : nil
         self.images = images
         self.drawingData = drawingData
     }

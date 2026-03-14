@@ -306,6 +306,17 @@ final class PageTests: XCTestCase {
         XCTAssertNil(page.pdfBackground)
     }
     
+    func testPagePDFBackgroundClearedWhenBackgroundTypeIsNotPDFPage() {
+        // Given – pdfBackground is provided but backgroundType is not .pdfPage
+        let pdfBackground = PDFBackground(pdfName: "document.pdf", pageIndex: 0)
+        
+        // When
+        let page = Page(backgroundType: .blank, pdfBackground: pdfBackground)
+        
+        // Then – init must enforce the invariant and clear pdfBackground
+        XCTAssertNil(page.pdfBackground)
+    }
+    
     // MARK: - Property Mutation Tests
     
     func testPageBackgroundTypeCanBeModified() {

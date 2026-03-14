@@ -191,12 +191,9 @@ class PDFStorageService {
             var result: [UIImage] = []
             for i in 0 ..< document.pageCount {
                 guard let page = document.page(at: i) else { continue }
-                // For thumbnails, use PDFPage's built-in thumbnail method for efficiency
-                if let thumbnail = page.thumbnail(of: size, for: .mediaBox) {
-                    result.append(thumbnail)
-                } else if let rendered = self.renderPDFPage(page, at: size) {
-                    result.append(rendered)
-                }
+                // PDFPage.thumbnail(of:for:) returns a non-optional UIImage
+                let thumbnail = page.thumbnail(of: size, for: .mediaBox)
+                result.append(thumbnail)
             }
             return result
         }.value
