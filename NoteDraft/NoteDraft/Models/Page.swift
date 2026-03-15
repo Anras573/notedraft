@@ -62,4 +62,15 @@ struct Page: Identifiable, Codable {
         images = try container.decodeIfPresent([PageImage].self, forKey: .images) ?? []
         drawingData = try container.decodeIfPresent(Data.self, forKey: .drawingData)
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(backgroundType, forKey: .backgroundType)
+        try container.encodeIfPresent(backgroundImage, forKey: .backgroundImage)
+        // Enforce invariant on encoding: only persist pdfBackground when backgroundType == .pdfPage
+        try container.encodeIfPresent(backgroundType == .pdfPage ? pdfBackground : nil, forKey: .pdfBackground)
+        try container.encode(images, forKey: .images)
+        try container.encodeIfPresent(drawingData, forKey: .drawingData)
+    }
 }

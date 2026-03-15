@@ -80,7 +80,7 @@ class PDFStorageService {
         memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
-            queue: OperationQueue()
+            queue: .main
         ) { [weak self] _ in
             self?.flushCache()
         }
@@ -134,8 +134,8 @@ class PDFStorageService {
         // Containment check: ensure the standardized candidate path stays within pdfDirectory.
         // Using `hasPrefix(dir + "/")` guarantees a proper path-component boundary
         // (prevents a sibling like "/Documents/pdfs-evil/x" matching "/Documents/pdfs").
-        let resolvedCandidate = candidate.standardized
-        let resolvedDirectory = pdfDirectory.standardized
+        let resolvedCandidate = candidate.standardizedFileURL
+        let resolvedDirectory = pdfDirectory.standardizedFileURL
         guard resolvedCandidate.path.hasPrefix(resolvedDirectory.path + "/") else {
             return pdfDirectory.appendingPathComponent(".invalid")
         }
