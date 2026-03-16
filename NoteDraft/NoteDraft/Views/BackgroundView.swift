@@ -49,6 +49,11 @@ struct BackgroundView: View {
                         // Fallback to blank if no custom image specified or loaded
                         EmptyView()
                     }
+                    
+                case .pdfPage:
+                    // PDF page background rendering is handled in Phase 3.
+                    // For now fall through to a blank white canvas.
+                    EmptyView()
                 }
             }
         }

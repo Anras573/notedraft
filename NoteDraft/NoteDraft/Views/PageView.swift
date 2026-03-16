@@ -42,7 +42,7 @@ struct PageView: View {
             
             ToolbarItem(placement: .topBarLeading) {
                 Menu {
-                    ForEach(BackgroundType.allCases) { type in
+                    ForEach(BackgroundType.selectableCases) { type in
                         Button {
                             viewModel.setBackgroundType(type)
                         } label: {
