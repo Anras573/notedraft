@@ -78,7 +78,12 @@ struct NotebookView: View {
                 Task {
                     do {
                         let (firstIdx, imported, total) = try await viewModel.importPDF(from: url)
-                        viewModel.setCurrentPageIndex(firstIdx)
+                        // In continuous view mode, scroll to the first newly-imported page.
+                        // In list mode, programmatic navigation is not supported; the new
+                        // pages appear at the end of the list and can be tapped directly.
+                        if viewModel.isContinuousViewMode {
+                            viewModel.setCurrentPageIndex(firstIdx)
+                        }
                         if imported < total {
                             pdfTruncationInfo = (imported: imported, total: total)
                             showPDFTruncationAlert = true

@@ -11,12 +11,15 @@ import Combine
 /// Errors specific to the PDF import flow.
 enum PDFImportError: LocalizedError {
     case emptyDocument
+    case unreadable
     case importFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .emptyDocument:
             return "The selected PDF contains no pages."
+        case .unreadable:
+            return "The PDF could not be read after import. The file may be corrupt or unsupported."
         case .importFailed(let message):
             return message
         }
@@ -27,7 +30,8 @@ class NotebookViewModel: ObservableObject {
     @Published var notebook: Notebook
     @Published var isContinuousViewMode: Bool = false
     @Published var currentPageIndex: Int = 0
-    /// `true` while a PDF is being imported and pages are being created.
+    /// `true` for the entire duration of a PDF import operation: from the initial file-copy
+    /// through validation and page creation, until the notebook is saved or an error occurs.
     @Published var isImportingPDF: Bool = false
 
     /// Maximum number of PDF pages imported in a single operation.
@@ -102,8 +106,13 @@ class NotebookViewModel: ObservableObject {
         }.value
 
         // Validate that the stored PDF has at least one page.
-        guard let totalCount = PDFStorageService.shared.pageCount(for: filename),
-              totalCount > 0 else {
+        // pageCount returns nil when the file cannot be opened (corrupt/unsupported after copy)
+        // and 0 when the document is genuinely empty; treat them as distinct failure modes.
+        guard let totalCount = PDFStorageService.shared.pageCount(for: filename) else {
+            PDFStorageService.shared.deletePDF(named: filename)
+            throw PDFImportError.unreadable
+        }
+        guard totalCount > 0 else {
             PDFStorageService.shared.deletePDF(named: filename)
             throw PDFImportError.emptyDocument
         }

@@ -84,8 +84,9 @@ class DataStore: ObservableObject {
     /// Returns the set of PDF filenames that are still referenced by at least one page
     /// across all notebooks.  Used to determine which PDF files can be safely deleted.
     ///
-    /// This performs a linear scan over all notebooks and pages.  For the expected
-    /// workload (tens of notebooks, hundreds of pages) the overhead is negligible.
+    /// This performs a linear scan over all notebooks and pages.  For typical workloads
+    /// (tens of notebooks, potentially thousands of pages after repeated PDF imports)
+    /// the overhead is acceptable; notebooks are only deleted infrequently.
     func referencedPDFNames() -> Set<String> {
         Set(notebooks.flatMap { $0.pages.compactMap { $0.pdfBackground?.pdfName } })
     }
