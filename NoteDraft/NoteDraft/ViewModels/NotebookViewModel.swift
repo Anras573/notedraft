@@ -100,9 +100,13 @@ class NotebookViewModel: ObservableObject {
 
         // Task.detached is intentional: importPDF is @MainActor-isolated, so a plain
         // Task would also run on the main actor and block the UI during file I/O.
-        // Security-scoped access is correctly managed inside PDFStorageService.importPDF,
-        // which calls startAccessingSecurityScopedResource() before touching the URL and
-        // stopAccessingSecurityScopedResource() in a defer — both of which are thread-safe.
+        // Thread-safety notes:
+        //   • PDFStorageService.importPDF starts/stops security-scoped access within
+        //     the function itself using a properly balanced defer (thread-safe per docs).
+        //   • The function only calls FileManager and PDFDocument APIs, which are
+        //     themselves thread-safe for reading/copying.
+        //   • The shared LRU cache in PDFStorageService is not accessed by importPDF,
+        //     so there is no contention with the cache lock.
         let filename = try await Task.detached(priority: .userInitiated) {
             try PDFStorageService.shared.importPDF(from: url)
         }.value

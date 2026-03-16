@@ -16,6 +16,9 @@ struct NotebookView: View {
     @State private var showPDFImportError: Bool = false
     @State private var pdfTruncationInfo: (imported: Int, total: Int)? = nil
     @State private var showPDFTruncationAlert: Bool = false
+    /// Set in list mode after a successful import to inform the user where new pages were added.
+    @State private var pdfListModeImportedCount: Int? = nil
+    @State private var showPDFListModeSuccess: Bool = false
 
     init(viewModel: NotebookViewModel) {
         self.viewModel = viewModel
@@ -79,10 +82,13 @@ struct NotebookView: View {
                     do {
                         let (firstIdx, imported, total) = try await viewModel.importPDF(from: url)
                         // In continuous view mode, scroll to the first newly-imported page.
-                        // In list mode, programmatic navigation is not supported; the new
-                        // pages appear at the end of the list and can be tapped directly.
+                        // In list mode, programmatic navigation is not supported; inform the
+                        // user how many pages were added and that they appear at the end.
                         if viewModel.isContinuousViewMode {
                             viewModel.setCurrentPageIndex(firstIdx)
+                        } else {
+                            pdfListModeImportedCount = imported
+                            showPDFListModeSuccess = true
                         }
                         if imported < total {
                             pdfTruncationInfo = (imported: imported, total: total)
@@ -108,6 +114,13 @@ struct NotebookView: View {
         } message: {
             if let info = pdfTruncationInfo {
                 Text("Only the first \(info.imported) of \(info.total) pages were imported.")
+            }
+        }
+        .alert("PDF Imported", isPresented: $showPDFListModeSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let count = pdfListModeImportedCount {
+                Text("\(count) \(count == 1 ? "page was" : "pages were") added to the end of the notebook.")
             }
         }
         .overlay {
