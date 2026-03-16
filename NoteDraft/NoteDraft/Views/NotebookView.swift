@@ -43,6 +43,7 @@ struct NotebookView: View {
                             systemImage: viewModel.isContinuousViewMode ? "list.bullet" : "doc.text.below.ecg"
                         )
                     }
+                    .accessibilityLabel(viewModel.isContinuousViewMode ? "Switch to List View" : "Switch to Continuous View")
 
                     Button {
                         showPDFImporter = true

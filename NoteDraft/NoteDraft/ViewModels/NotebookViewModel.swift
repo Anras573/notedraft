@@ -94,7 +94,9 @@ class NotebookViewModel: ObservableObject {
         isImportingPDF = true
         defer { isImportingPDF = false }
 
-        // Copy the PDF into local storage off the main thread.
+        // Task.detached is intentional: importPDF is @MainActor-isolated, so a plain
+        // Task would also run on the main actor.  We need a detached task to perform
+        // the (potentially slow) file-copy off the main thread.
         let filename = try await Task.detached(priority: .userInitiated) {
             try PDFStorageService.shared.importPDF(from: url)
         }.value
