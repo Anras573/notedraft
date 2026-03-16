@@ -33,6 +33,10 @@ class NotebookViewModel: ObservableObject {
     /// `true` for the entire duration of a PDF import operation: from the initial file-copy
     /// through validation and page creation, until the notebook is saved or an error occurs.
     @Published var isImportingPDF: Bool = false
+    /// When non-nil, `ContinuousPageView` should programmatically scroll to the page with
+    /// this ID.  Reset to `nil` immediately after the scroll is triggered so the same value
+    /// does not re-trigger the scroll on subsequent recompositions.
+    @Published var programmaticScrollTarget: UUID? = nil
 
     /// Maximum number of PDF pages imported in a single operation.
     static let maxImportPageCount = 100
@@ -62,7 +66,12 @@ class NotebookViewModel: ObservableObject {
     func deletePage(_ page: Page) {
         notebook.pages.removeAll { $0.id == page.id }
         saveNotebook()
-        cleanupUnreferencedPDFs()
+        // Snapshot the referenced PDF names on the main actor before dispatching,
+        // since dataStore.notebooks is a @Published property isolated to the main actor.
+        let referencedNames = dataStore.referencedPDFNames()
+        Task.detached(priority: .background) {
+            PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)
+        }
     }
     
     func reorderPages(from source: IndexSet, to destination: Int) {
@@ -81,6 +90,16 @@ class NotebookViewModel: ObservableObject {
     func setCurrentPageIndex(_ index: Int) {
         guard index >= 0 && index < notebook.pages.count else { return }
         currentPageIndex = index
+    }
+
+    /// Sets the current page index **and** requests a programmatic scroll to that page in
+    /// `ContinuousPageView`.  Use this when you want the view to scroll to the page (e.g.,
+    /// after a PDF import); use `setCurrentPageIndex` when the index change originates from
+    /// the view itself and no scroll should be triggered.
+    func scrollToPage(at index: Int) {
+        guard index >= 0 && index < notebook.pages.count else { return }
+        currentPageIndex = index
+        programmaticScrollTarget = notebook.pages[index].id
     }
 
     // MARK: - PDF Import
@@ -103,25 +122,25 @@ class NotebookViewModel: ObservableObject {
         // Thread-safety notes:
         //   • PDFStorageService.importPDF starts/stops security-scoped access within
         //     the function itself using a properly balanced defer (thread-safe per docs).
-        //   • The function only calls FileManager and PDFDocument APIs, which are
-        //     themselves thread-safe for reading/copying.
+        //   • Both importPDF and pageCount use only FileManager/PDFDocument APIs,
+        //     which are thread-safe for reading and copying.
         //   • The shared LRU cache in PDFStorageService is not accessed by importPDF,
         //     so there is no contention with the cache lock.
-        let filename = try await Task.detached(priority: .userInitiated) {
-            try PDFStorageService.shared.importPDF(from: url)
+        // pageCount is also included in the detached task to keep synchronous PDFDocument
+        // construction (file I/O + parsing) off the main actor.
+        let (filename, totalCount) = try await Task.detached(priority: .userInitiated) {
+            let name = try PDFStorageService.shared.importPDF(from: url)
+            // Validate page count while still on the background thread.
+            guard let count = PDFStorageService.shared.pageCount(for: name) else {
+                PDFStorageService.shared.deletePDF(named: name)
+                throw PDFImportError.unreadable
+            }
+            guard count > 0 else {
+                PDFStorageService.shared.deletePDF(named: name)
+                throw PDFImportError.emptyDocument
+            }
+            return (name, count)
         }.value
-
-        // Validate that the stored PDF has at least one page.
-        // pageCount returns nil when the file cannot be opened (corrupt/unsupported after copy)
-        // and 0 when the document is genuinely empty; treat them as distinct failure modes.
-        guard let totalCount = PDFStorageService.shared.pageCount(for: filename) else {
-            PDFStorageService.shared.deletePDF(named: filename)
-            throw PDFImportError.unreadable
-        }
-        guard totalCount > 0 else {
-            PDFStorageService.shared.deletePDF(named: filename)
-            throw PDFImportError.emptyDocument
-        }
 
         let importedCount = min(totalCount, Self.maxImportPageCount)
         let firstNewPageIndex = notebook.pages.count

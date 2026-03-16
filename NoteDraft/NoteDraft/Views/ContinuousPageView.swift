@@ -62,6 +62,16 @@ struct ContinuousPageView: View {
                         scrollProxy.scrollTo(pageId, anchor: .top)
                     }
                 }
+                .onChange(of: notebookViewModel.programmaticScrollTarget) { _, target in
+                    // Respond to programmatic scroll requests (e.g., after a PDF import).
+                    // Using a dedicated publisher rather than observing currentPageIndex
+                    // directly prevents a feedback loop where user-driven index updates
+                    // would re-trigger a scroll.
+                    guard let pageId = target else { return }
+                    scrollProxy.scrollTo(pageId, anchor: .top)
+                    // Clear the target so repeated recompositions don't re-trigger the scroll.
+                    notebookViewModel.programmaticScrollTarget = nil
+                }
             }
         }
         .navigationTitle(navigationTitleText)

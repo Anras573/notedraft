@@ -81,11 +81,11 @@ struct NotebookView: View {
                 Task {
                     do {
                         let (firstIdx, imported, total) = try await viewModel.importPDF(from: url)
-                        // In continuous view mode, scroll to the first newly-imported page.
+                        // In continuous view mode, programmatically scroll to the first new page.
                         // In list mode, programmatic navigation is not supported; inform the
                         // user how many pages were added and that they appear at the end.
                         if viewModel.isContinuousViewMode {
-                            viewModel.setCurrentPageIndex(firstIdx)
+                            viewModel.scrollToPage(at: firstIdx)
                         } else {
                             pdfListModeImportedCount = imported
                             showPDFListModeSuccess = true
@@ -100,6 +100,9 @@ struct NotebookView: View {
                     }
                 }
             case .failure(let error):
+                // Ignore user-initiated cancellation (e.g., tapping Cancel in the picker).
+                let nsError = error as NSError
+                guard !(nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) else { return }
                 pdfImportError = error
                 showPDFImportError = true
             }
