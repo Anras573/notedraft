@@ -80,4 +80,10 @@ class DataStore: ObservableObject {
         notebooks.removeAll { $0.id == notebook.id }
         saveNotebooks()
     }
+    
+    /// Returns the set of PDF filenames that are still referenced by at least one page
+    /// across all notebooks.  Used to determine which PDF files can be safely deleted.
+    func referencedPDFNames() -> Set<String> {
+        Set(notebooks.flatMap { $0.pages.compactMap { $0.pdfBackground?.pdfName } })
+    }
 }

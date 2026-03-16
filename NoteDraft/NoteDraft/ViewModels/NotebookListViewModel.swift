@@ -32,10 +32,7 @@ class NotebookListViewModel: ObservableObject {
     func deleteNotebook(_ notebook: Notebook) {
         dataStore.deleteNotebook(notebook)
         // Clean up any PDF files that are no longer referenced by any remaining notebook.
-        let referencedNames = Set(
-            dataStore.notebooks.flatMap { $0.pages.compactMap { $0.pdfBackground?.pdfName } }
-        )
-        PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)
+        PDFStorageService.shared.deleteUnreferencedPDFs(keeping: dataStore.referencedPDFNames())
     }
     
     func renameNotebook(_ notebook: Notebook, newName: String) {

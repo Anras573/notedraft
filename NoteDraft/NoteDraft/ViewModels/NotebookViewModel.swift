@@ -126,10 +126,7 @@ class NotebookViewModel: ObservableObject {
     /// Deletes PDF files from storage that are no longer referenced by any page in
     /// any notebook.  Must be called after deleting pages or notebooks.
     func cleanupUnreferencedPDFs() {
-        let referencedNames = Set(
-            dataStore.notebooks.flatMap { $0.pages.compactMap { $0.pdfBackground?.pdfName } }
-        )
-        PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)
+        PDFStorageService.shared.deleteUnreferencedPDFs(keeping: dataStore.referencedPDFNames())
     }
 
     // MARK: - Private helpers
