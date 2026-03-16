@@ -101,8 +101,7 @@ struct NotebookView: View {
                 }
             case .failure(let error):
                 // Ignore user-initiated cancellation (e.g., tapping Cancel in the picker).
-                let nsError = error as NSError
-                guard !(nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) else { return }
+                guard !((error as? CocoaError)?.code == .userCancelled) else { return }
                 pdfImportError = error
                 showPDFImportError = true
             }
