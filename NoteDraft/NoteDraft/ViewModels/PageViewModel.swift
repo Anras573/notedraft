@@ -217,9 +217,8 @@ class PageViewModel: ObservableObject {
         let imageURL = imagesDirectory.appendingPathComponent(sanitizedFilename)
         
         // Perform file I/O asynchronously
-        guard let imageData = try? await Task.detached {
-            try Data(contentsOf: imageURL)
-        }.value else {
+        let loadTask = Task.detached { try Data(contentsOf: imageURL) }
+        guard let imageData = try? await loadTask.value else {
             return nil
         }
         
