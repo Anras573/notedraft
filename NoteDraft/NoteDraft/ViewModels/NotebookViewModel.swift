@@ -66,8 +66,8 @@ class NotebookViewModel: ObservableObject {
     func deletePage(_ page: Page) {
         notebook.pages.removeAll { $0.id == page.id }
         saveNotebook()
-        // Snapshot the referenced PDF names on the main actor before dispatching,
-        // since dataStore.notebooks is a @Published property isolated to the main actor.
+        // Snapshot the referenced PDF names here; this function is always called from the
+        // main actor (SwiftUI UI action), so accessing dataStore is safe at this point.
         let referencedNames = dataStore.referencedPDFNames()
         Task.detached(priority: .background) {
             PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)
@@ -155,14 +155,6 @@ class NotebookViewModel: ObservableObject {
         saveNotebook()
 
         return (firstNewPageIndex: firstNewPageIndex, importedCount: importedCount, totalCount: totalCount)
-    }
-
-    // MARK: - PDF Cleanup
-
-    /// Deletes PDF files from storage that are no longer referenced by any page in
-    /// any notebook.  Must be called after deleting pages or notebooks.
-    func cleanupUnreferencedPDFs() {
-        PDFStorageService.shared.deleteUnreferencedPDFs(keeping: dataStore.referencedPDFNames())
     }
 
     // MARK: - Private helpers

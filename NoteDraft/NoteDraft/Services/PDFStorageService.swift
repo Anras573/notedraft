@@ -70,6 +70,12 @@ class PDFStorageService {
     private let cache = LRUCache<CacheKey, UIImage>(capacity: 10)
     private let cacheLock = NSLock()
 
+    /// Filenames of PDFs that are currently being imported.
+    /// `deleteUnreferencedPDFs` always keeps these files so it can never race with an
+    /// in-flight import and delete a file before the importing caller has saved its pages.
+    private var inProgressImportNames: Set<String> = []
+    private let inProgressLock = NSLock()
+
     private var memoryWarningObserver: NSObjectProtocol?
 
     // MARK: - Init / deinit
@@ -162,6 +168,20 @@ class PDFStorageService {
         createPDFDirectoryIfNeeded()
 
         let filename = "\(UUID().uuidString).pdf"
+
+        // Register the filename before copying so that a concurrent `deleteUnreferencedPDFs`
+        // call never deletes this file in the window between copy completion and the caller
+        // saving the referencing pages.  The insert is infallible (pure in-memory operation),
+        // so the lock/unlock here cannot leak; the defer below handles removal on all paths.
+        inProgressLock.lock()
+        inProgressImportNames.insert(filename)
+        inProgressLock.unlock()
+        defer {
+            inProgressLock.lock()
+            inProgressImportNames.remove(filename)
+            inProgressLock.unlock()
+        }
+
         let destination = pdfDirectory.appendingPathComponent(filename)
         try FileManager.default.copyItem(at: url, to: destination)
         return filename
@@ -237,7 +257,14 @@ class PDFStorageService {
 
     /// Deletes PDF files from storage that are not referenced by the provided set of filenames.
     /// Call this after any page or notebook deletion to clean up orphaned PDFs.
+    /// In-progress imports are always kept, regardless of `referencedNames`.
     func deleteUnreferencedPDFs(keeping referencedNames: Set<String>) {
+        // Include any filenames currently being imported so we never delete a file that
+        // was just copied but whose referencing page hasn't been saved yet.
+        inProgressLock.lock()
+        let keep = referencedNames.union(inProgressImportNames)
+        inProgressLock.unlock()
+
         let dir = pdfDirectory
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: dir,
@@ -246,7 +273,7 @@ class PDFStorageService {
 
         for fileURL in contents {
             let filename = fileURL.lastPathComponent
-            if !referencedNames.contains(filename) {
+            if !keep.contains(filename) {
                 do {
                     try FileManager.default.removeItem(at: fileURL)
                 } catch {

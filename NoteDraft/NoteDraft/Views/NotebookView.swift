@@ -14,14 +14,18 @@ struct NotebookView: View {
     @State private var showPDFImporter: Bool = false
     @State private var pdfImportError: Error? = nil
     @State private var showPDFImportError: Bool = false
-    @State private var pdfTruncationInfo: (imported: Int, total: Int)? = nil
-    @State private var showPDFTruncationAlert: Bool = false
-    /// Set in list mode after a successful import to inform the user where new pages were added.
-    @State private var pdfListModeImportedCount: Int? = nil
-    @State private var showPDFListModeSuccess: Bool = false
+    /// Message shown after a successful import (success info and/or truncation notice).
+    @State private var pdfImportSuccessMessage: String? = nil
+    @State private var showPDFImportSuccess: Bool = false
 
     init(viewModel: NotebookViewModel) {
         self.viewModel = viewModel
+    }
+
+    // MARK: - Private helpers
+
+    private func truncationNotice(imported: Int, total: Int) -> String {
+        "Only the first \(imported) of \(total) pages were imported due to the 100-page limit."
     }
     
     var body: some View {
@@ -78,21 +82,24 @@ struct NotebookView: View {
         ) { result in
             switch result {
             case .success(let url):
-                Task {
+                Task { @MainActor in
                     do {
                         let (firstIdx, imported, total) = try await viewModel.importPDF(from: url)
-                        // In continuous view mode, programmatically scroll to the first new page.
-                        // In list mode, programmatic navigation is not supported; inform the
-                        // user how many pages were added and that they appear at the end.
                         if viewModel.isContinuousViewMode {
+                            // Scroll to the first new page; only alert if pages were truncated.
                             viewModel.scrollToPage(at: firstIdx)
+                            if imported < total {
+                                pdfImportSuccessMessage = truncationNotice(imported: imported, total: total)
+                                showPDFImportSuccess = true
+                            }
                         } else {
-                            pdfListModeImportedCount = imported
-                            showPDFListModeSuccess = true
-                        }
-                        if imported < total {
-                            pdfTruncationInfo = (imported: imported, total: total)
-                            showPDFTruncationAlert = true
+                            // List mode: always confirm success; include truncation note if applicable.
+                            var message = "\(imported) \(imported == 1 ? "page was" : "pages were") added to the end of the notebook."
+                            if imported < total {
+                                message += " \(truncationNotice(imported: imported, total: total))"
+                            }
+                            pdfImportSuccessMessage = message
+                            showPDFImportSuccess = true
                         }
                     } catch {
                         pdfImportError = error
@@ -111,19 +118,10 @@ struct NotebookView: View {
         } message: {
             Text(pdfImportError?.localizedDescription ?? "An unknown error occurred.")
         }
-        .alert("PDF Partially Imported", isPresented: $showPDFTruncationAlert) {
+        .alert("PDF Imported", isPresented: $showPDFImportSuccess) {
             Button("OK", role: .cancel) {}
         } message: {
-            if let info = pdfTruncationInfo {
-                Text("Only the first \(info.imported) of \(info.total) pages were imported.")
-            }
-        }
-        .alert("PDF Imported", isPresented: $showPDFListModeSuccess) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            if let count = pdfListModeImportedCount {
-                Text("\(count) \(count == 1 ? "page was" : "pages were") added to the end of the notebook.")
-            }
+            Text(pdfImportSuccessMessage ?? "")
         }
         .overlay {
             if viewModel.isImportingPDF {
