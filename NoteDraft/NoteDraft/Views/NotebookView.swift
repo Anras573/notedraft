@@ -25,7 +25,7 @@ struct NotebookView: View {
     // MARK: - Private helpers
 
     private func truncationNotice(imported: Int, total: Int) -> String {
-        "Only the first \(imported) of \(total) pages were imported due to the 100-page limit."
+        "Only the first \(imported) of \(total) pages were imported due to the \(NotebookViewModel.maxImportPageCount)-page limit."
     }
     
     var body: some View {

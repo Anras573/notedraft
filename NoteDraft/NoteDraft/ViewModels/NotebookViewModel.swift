@@ -133,12 +133,16 @@ class NotebookViewModel: ObservableObject {
             // Validate page count while still on the background thread.
             guard let count = PDFStorageService.shared.pageCount(for: name) else {
                 PDFStorageService.shared.deletePDF(named: name)
+                PDFStorageService.shared.finishImport(filename: name)
                 throw PDFImportError.unreadable
             }
             guard count > 0 else {
                 PDFStorageService.shared.deletePDF(named: name)
+                PDFStorageService.shared.finishImport(filename: name)
                 throw PDFImportError.emptyDocument
             }
+            // Leave the filename registered; NotebookViewModel will call finishImport
+            // after saving the notebook so the protection window covers the entire flow.
             return (name, count)
         }.value
 
@@ -153,6 +157,8 @@ class NotebookViewModel: ObservableObject {
             notebook.pages.append(page)
         }
         saveNotebook()
+        // Pages are now persisted; the file is referenced and can be collected normally.
+        PDFStorageService.shared.finishImport(filename: filename)
 
         return (firstNewPageIndex: firstNewPageIndex, importedCount: importedCount, totalCount: totalCount)
     }

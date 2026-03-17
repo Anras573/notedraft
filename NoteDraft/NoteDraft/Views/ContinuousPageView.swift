@@ -69,9 +69,10 @@ struct ContinuousPageView: View {
                     // would re-trigger a scroll.
                     guard let pageId = target else { return }
                     scrollProxy.scrollTo(pageId, anchor: .top)
-                    // Clear the target after the current run loop so the scroll has been
-                    // enqueued before we reset the value.  This prevents repeated
-                    // recompositions from re-triggering the same scroll.
+                    // Clear the target asynchronously on the main actor so the scroll
+                    // call above has been enqueued before we reset the value.
+                    // This prevents the same value from re-triggering the scroll if
+                    // SwiftUI re-evaluates the onChange closure before the nil write lands.
                     Task { @MainActor in
                         notebookViewModel.programmaticScrollTarget = nil
                     }

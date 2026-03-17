@@ -169,22 +169,35 @@ class PDFStorageService {
 
         let filename = "\(UUID().uuidString).pdf"
 
-        // Register the filename before copying so that a concurrent `deleteUnreferencedPDFs`
-        // call never deletes this file in the window between copy completion and the caller
-        // saving the referencing pages.  The insert is infallible (pure in-memory operation),
-        // so the lock/unlock here cannot leak; the defer below handles removal on all paths.
+        // Register the filename now.  The registration is intentionally NOT removed here on
+        // success; the caller must call `finishImport(filename:)` once the referencing pages
+        // have been persisted.  This closes the race window between this function returning
+        // and the notebook being saved, during which a concurrent `deleteUnreferencedPDFs`
+        // would otherwise see the file as unreferenced and delete it.
+        // The insert is infallible (pure in-memory), so the unlock below cannot be skipped.
         inProgressLock.lock()
         inProgressImportNames.insert(filename)
         inProgressLock.unlock()
-        defer {
-            inProgressLock.lock()
-            inProgressImportNames.remove(filename)
-            inProgressLock.unlock()
-        }
 
         let destination = pdfDirectory.appendingPathComponent(filename)
-        try FileManager.default.copyItem(at: url, to: destination)
+        do {
+            try FileManager.default.copyItem(at: url, to: destination)
+        } catch {
+            // Copy failed — deregister immediately since no file was produced.
+            finishImport(filename: filename)
+            throw error
+        }
         return filename
+    }
+
+    /// Marks an in-progress import as complete so that `deleteUnreferencedPDFs` may
+    /// collect it if it is no longer referenced.  Call this after the referencing pages
+    /// have been persisted (on success) **or** after cleaning up the copied file (on
+    /// validation failure).
+    func finishImport(filename: String) {
+        inProgressLock.lock()
+        inProgressImportNames.remove(filename)
+        inProgressLock.unlock()
     }
 
     /// Returns the number of pages in a stored PDF, or `nil` if the file is missing or invalid.
