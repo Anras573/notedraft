@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 
+@MainActor
 class NotebookListViewModel: ObservableObject {
     @Published var notebooks: [Notebook] = []
     
@@ -17,8 +18,10 @@ class NotebookListViewModel: ObservableObject {
     init(dataStore: DataStore) {
         self.dataStore = dataStore
         
-        // Subscribe to dataStore's notebooks changes
+        // Subscribe to dataStore's notebooks changes.
+        // receive(on:) ensures assignment always runs on the main actor, matching @MainActor isolation.
         dataStore.$notebooks
+            .receive(on: RunLoop.main)
             .assign(to: &$notebooks)
     }
     
@@ -33,7 +36,8 @@ class NotebookListViewModel: ObservableObject {
         dataStore.deleteNotebook(notebook)
         // Clean up any PDF files that are no longer referenced by any remaining notebook.
         // Run in a detached background task so directory enumeration and file deletions
-        // never block the main thread (this is called directly from a swipe action).
+        // never block the main thread. @MainActor isolation on this method guarantees
+        // that referencedPDFNames() is always read on the main actor.
         let referencedNames = dataStore.referencedPDFNames()
         Task.detached(priority: .background) {
             PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)

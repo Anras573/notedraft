@@ -272,12 +272,6 @@ class PDFStorageService {
     /// Call this after any page or notebook deletion to clean up orphaned PDFs.
     /// In-progress imports are always kept, regardless of `referencedNames`.
     func deleteUnreferencedPDFs(keeping referencedNames: Set<String>) {
-        // Include any filenames currently being imported so we never delete a file that
-        // was just copied but whose referencing page hasn't been saved yet.
-        inProgressLock.lock()
-        let keep = referencedNames.union(inProgressImportNames)
-        inProgressLock.unlock()
-
         let dir = pdfDirectory
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: dir,
@@ -286,7 +280,14 @@ class PDFStorageService {
 
         for fileURL in contents {
             let filename = fileURL.lastPathComponent
-            if !keep.contains(filename) {
+            // Re-check inProgressImportNames under lock for every file so that an import
+            // which starts after deleteUnreferencedPDFs is called (but before we reach
+            // this file in the loop) is never deleted.
+            inProgressLock.lock()
+            let isInProgress = inProgressImportNames.contains(filename)
+            inProgressLock.unlock()
+
+            if !referencedNames.contains(filename) && !isInProgress {
                 do {
                     try FileManager.default.removeItem(at: fileURL)
                 } catch {

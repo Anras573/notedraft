@@ -26,6 +26,7 @@ enum PDFImportError: LocalizedError {
     }
 }
 
+@MainActor
 class NotebookViewModel: ObservableObject {
     @Published var notebook: Notebook
     @Published var isContinuousViewMode: Bool = false
@@ -48,9 +49,11 @@ class NotebookViewModel: ObservableObject {
         self.notebook = notebook
         self.dataStore = dataStore
         
-        // Subscribe to dataStore's notebooks changes to keep this notebook in sync
+        // Subscribe to dataStore's notebooks changes to keep this notebook in sync.
+        // receive(on:) ensures the sink always runs on the main actor, matching @MainActor isolation.
         dataStore.$notebooks
             .compactMap { notebooks in notebooks.first(where: { $0.id == notebook.id }) }
+            .receive(on: RunLoop.main)
             .sink { [weak self] updatedNotebook in
                 self?.notebook = updatedNotebook
             }
@@ -66,8 +69,8 @@ class NotebookViewModel: ObservableObject {
     func deletePage(_ page: Page) {
         notebook.pages.removeAll { $0.id == page.id }
         saveNotebook()
-        // Snapshot the referenced PDF names here; this function is always called from the
-        // main actor (SwiftUI UI action), so accessing dataStore is safe at this point.
+        // Snapshot the referenced PDF names; @MainActor isolation ensures this is
+        // always on the main actor, making the DataStore access safe.
         let referencedNames = dataStore.referencedPDFNames()
         Task.detached(priority: .background) {
             PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedNames)
