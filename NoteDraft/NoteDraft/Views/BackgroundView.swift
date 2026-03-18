@@ -92,7 +92,8 @@ struct BackgroundView: View {
 ///
 /// Loading phases:
 /// - `.idle` / `.loading`: shows a spinner (`.idle` transitions to `.loading` immediately when the task starts).
-/// - `.loaded`: displays the rendered page image, scaled to fill the view width while preserving aspect ratio.
+/// - `.loaded`: displays the rendered page image, scaled to fill the view width while preserving aspect ratio,
+///              pinned to the top of the container.
 /// - `.unavailable`: shown when `pdfBackground` or `viewModel` is nil, or when the PDF file is missing / corrupt.
 struct PDFPageBackgroundView: View {
     let pdfBackground: PDFBackground?
@@ -105,7 +106,20 @@ struct PDFPageBackgroundView: View {
         case unavailable
     }
 
+    /// Combined task identity: the render task re-runs when `pdfBackground` changes OR
+    /// when the view size transitions from zero to non-zero (avoiding a permanent
+    /// `.unavailable` result on the first layout pass where `geometry.size` is `.zero`).
+    private struct RenderRequest: Equatable {
+        let pdfBackground: PDFBackground?
+        let hasNonZeroSize: Bool
+    }
+
     @State private var loadPhase: LoadPhase = .idle
+    @State private var viewSize: CGSize = .zero
+
+    private var hasNonZeroSize: Bool {
+        viewSize.width > 0 && viewSize.height > 0
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -120,7 +134,11 @@ struct PDFPageBackgroundView: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: geometry.size.width, alignment: .top)
+                        // Width-constrain the image; height is determined by aspect ratio.
+                        // The second .frame pins the image to the top of the container so
+                        // that the drawing layer and PDF content share the same origin.
+                        .frame(width: geometry.size.width)
+                        .frame(maxHeight: .infinity, alignment: .top)
                 case .unavailable:
                     ZStack {
                         Color(UIColor.secondarySystemBackground)
@@ -135,16 +153,26 @@ struct PDFPageBackgroundView: View {
                     }
                 }
             }
-            .task(id: pdfBackground) {
+            .onAppear {
+                viewSize = geometry.size
+            }
+            .onChange(of: geometry.size) { _, newSize in
+                viewSize = newSize
+            }
+            .task(id: RenderRequest(pdfBackground: pdfBackground, hasNonZeroSize: hasNonZeroSize)) {
                 guard let viewModel, let pdfBackground else {
                     loadPhase = .unavailable
                     return
                 }
+                // Defer rendering until the view has a concrete size.
+                // The RenderRequest task-id will transition from hasNonZeroSize=false to true
+                // once .onAppear / .onChange fires, triggering this task again.
+                guard hasNonZeroSize else { return }
                 loadPhase = .loading
-                // Render at the current geometry size. On orientation changes the
-                // cached image is re-scaled by .scaledToFit() without a re-render,
-                // which satisfies the Phase 3 "re-render or scale" spec requirement.
-                if let image = await viewModel.loadPDFBackgroundImage(size: geometry.size) {
+                let image = await viewModel.loadPDFBackgroundImage(pdfBackground, size: viewSize)
+                // Discard result if the task was cancelled mid-flight (e.g., pdfBackground changed).
+                guard !Task.isCancelled else { return }
+                if let image {
                     loadPhase = .loaded(image)
                 } else {
                     loadPhase = .unavailable
