@@ -70,6 +70,12 @@ class PDFStorageService {
     private let cache = LRUCache<CacheKey, UIImage>(capacity: 10)
     private let cacheLock = NSLock()
 
+    /// Filenames of PDFs that are currently being imported.
+    /// `deleteUnreferencedPDFs` always keeps these files so it can never race with an
+    /// in-flight import and delete a file before the importing caller has saved its pages.
+    private var inProgressImportNames: Set<String> = []
+    private let inProgressLock = NSLock()
+
     private var memoryWarningObserver: NSObjectProtocol?
 
     // MARK: - Init / deinit
@@ -162,9 +168,36 @@ class PDFStorageService {
         createPDFDirectoryIfNeeded()
 
         let filename = "\(UUID().uuidString).pdf"
+
+        // Register the filename now.  The registration is intentionally NOT removed here on
+        // success; the caller must call `finishImport(filename:)` once the referencing pages
+        // have been persisted.  This closes the race window between this function returning
+        // and the notebook being saved, during which a concurrent `deleteUnreferencedPDFs`
+        // would otherwise see the file as unreferenced and delete it.
+        // The insert is infallible (pure in-memory), so the unlock below cannot be skipped.
+        inProgressLock.lock()
+        inProgressImportNames.insert(filename)
+        inProgressLock.unlock()
+
         let destination = pdfDirectory.appendingPathComponent(filename)
-        try FileManager.default.copyItem(at: url, to: destination)
+        do {
+            try FileManager.default.copyItem(at: url, to: destination)
+        } catch {
+            // Copy failed — deregister immediately since no file was produced.
+            finishImport(filename: filename)
+            throw error
+        }
         return filename
+    }
+
+    /// Marks an in-progress import as complete so that `deleteUnreferencedPDFs` may
+    /// collect it if it is no longer referenced.  Call this after the referencing pages
+    /// have been persisted (on success) **or** after cleaning up the copied file (on
+    /// validation failure).
+    func finishImport(filename: String) {
+        inProgressLock.lock()
+        inProgressImportNames.remove(filename)
+        inProgressLock.unlock()
     }
 
     /// Returns the number of pages in a stored PDF, or `nil` if the file is missing or invalid.
@@ -237,7 +270,16 @@ class PDFStorageService {
 
     /// Deletes PDF files from storage that are not referenced by the provided set of filenames.
     /// Call this after any page or notebook deletion to clean up orphaned PDFs.
+    /// In-progress imports are always kept, regardless of `referencedNames`.
     func deleteUnreferencedPDFs(keeping referencedNames: Set<String>) {
+        // Snapshot in-progress imports once under lock.  The invariant in importPDF is that
+        // a filename is registered in inProgressImportNames *before* the file is copied to
+        // disk, so any file that appears in the directory will already be in this snapshot
+        // if its import is in flight.
+        inProgressLock.lock()
+        let keep = referencedNames.union(inProgressImportNames)
+        inProgressLock.unlock()
+
         let dir = pdfDirectory
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: dir,
@@ -246,7 +288,7 @@ class PDFStorageService {
 
         for fileURL in contents {
             let filename = fileURL.lastPathComponent
-            if !referencedNames.contains(filename) {
+            if !keep.contains(filename) {
                 do {
                     try FileManager.default.removeItem(at: fileURL)
                 } catch {
