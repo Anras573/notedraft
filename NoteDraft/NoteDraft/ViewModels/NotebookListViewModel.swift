@@ -19,9 +19,7 @@ class NotebookListViewModel: ObservableObject {
         self.dataStore = dataStore
         
         // Subscribe to dataStore's notebooks changes.
-        // receive(on:) ensures assignment always runs on the main actor, matching @MainActor isolation.
         dataStore.$notebooks
-            .receive(on: RunLoop.main)
             .assign(to: &$notebooks)
     }
     

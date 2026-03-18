@@ -50,10 +50,8 @@ class NotebookViewModel: ObservableObject {
         self.dataStore = dataStore
         
         // Subscribe to dataStore's notebooks changes to keep this notebook in sync.
-        // receive(on:) ensures the sink always runs on the main actor, matching @MainActor isolation.
         dataStore.$notebooks
             .compactMap { notebooks in notebooks.first(where: { $0.id == notebook.id }) }
-            .receive(on: RunLoop.main)
             .sink { [weak self] updatedNotebook in
                 self?.notebook = updatedNotebook
             }
