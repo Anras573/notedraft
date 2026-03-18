@@ -141,6 +141,9 @@ struct PDFPageBackgroundView: View {
                     return
                 }
                 loadPhase = .loading
+                // Render at the current geometry size. On orientation changes the
+                // cached image is re-scaled by .scaledToFit() without a re-render,
+                // which satisfies the Phase 3 "re-render or scale" spec requirement.
                 if let image = await viewModel.loadPDFBackgroundImage(size: geometry.size) {
                     loadPhase = .loaded(image)
                 } else {

@@ -325,7 +325,7 @@ final class BackgroundTypeTests: XCTestCase {
         XCTAssertTrue(selectable.contains(.pdfPage))
     }
 
-    func testSelectableCasesContainsAllCases() {
+    func testSelectableCasesContainsAllExpectedCases() {
         // Given
         let selectable = BackgroundType.selectableCases
 
