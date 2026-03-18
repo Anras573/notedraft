@@ -317,23 +317,24 @@ final class BackgroundTypeTests: XCTestCase {
 
     // MARK: - selectableCases Tests
 
-    func testSelectableCasesExcludesPDFPage() {
+    func testSelectableCasesIncludesPDFPage() {
         // Given
         let selectable = BackgroundType.selectableCases
 
-        // Then – pdfPage must not appear in selectable cases until Phase 3
-        XCTAssertFalse(selectable.contains(.pdfPage))
+        // Then – pdfPage is selectable in Phase 3
+        XCTAssertTrue(selectable.contains(.pdfPage))
     }
 
-    func testSelectableCasesContainsAllOtherCases() {
+    func testSelectableCasesContainsAllExpectedCases() {
         // Given
         let selectable = BackgroundType.selectableCases
 
-        // Then – all non-pdfPage cases should be selectable
+        // Then – all cases should be selectable
         XCTAssertTrue(selectable.contains(.blank))
         XCTAssertTrue(selectable.contains(.lined))
         XCTAssertTrue(selectable.contains(.grid))
         XCTAssertTrue(selectable.contains(.customImage))
-        XCTAssertEqual(selectable.count, BackgroundType.allCases.count - 1)
+        XCTAssertTrue(selectable.contains(.pdfPage))
+        XCTAssertEqual(selectable.count, BackgroundType.allCases.count)
     }
 }
