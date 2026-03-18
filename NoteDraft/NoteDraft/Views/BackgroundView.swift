@@ -111,7 +111,7 @@ struct PDFPageBackgroundView: View {
     /// `.unavailable` result on the first layout pass where `geometry.size` is `.zero`).
     private struct RenderRequest: Equatable {
         let pdfBackground: PDFBackground?
-        let hasNonZeroSize: Bool
+        let normalizedSize: CGSize
     }
 
     @State private var loadPhase: LoadPhase = .idle
@@ -119,6 +119,17 @@ struct PDFPageBackgroundView: View {
 
     private var hasNonZeroSize: Bool {
         viewSize.width > 0 && viewSize.height > 0
+    }
+
+    /// Returns `size` rounded to the nearest screen pixel boundary so that
+    /// sub-point layout jitter (e.g. from rotation or split-view resizing) does
+    /// not produce unnecessary cache misses or re-renders.
+    private func pixelAligned(_ size: CGSize) -> CGSize {
+        let scale = UIScreen.main.scale
+        return CGSize(
+            width: (size.width * scale).rounded() / scale,
+            height: (size.height * scale).rounded() / scale
+        )
     }
 
     var body: some View {
@@ -159,17 +170,18 @@ struct PDFPageBackgroundView: View {
             .onChange(of: geometry.size) { _, newSize in
                 viewSize = newSize
             }
-            .task(id: RenderRequest(pdfBackground: pdfBackground, hasNonZeroSize: hasNonZeroSize)) {
+            .task(id: RenderRequest(pdfBackground: pdfBackground, normalizedSize: pixelAligned(viewSize))) {
                 guard let viewModel, let pdfBackground else {
                     loadPhase = .unavailable
                     return
                 }
                 // Defer rendering until the view has a concrete size.
-                // The RenderRequest task-id will transition from hasNonZeroSize=false to true
-                // once .onAppear / .onChange fires, triggering this task again.
+                // The RenderRequest task-id will transition when the first non-zero
+                // normalizedSize is available, triggering this task again.
                 guard hasNonZeroSize else { return }
                 loadPhase = .loading
-                let image = await viewModel.loadPDFBackgroundImage(pdfBackground, size: viewSize)
+                let renderSize = pixelAligned(viewSize)
+                let image = await viewModel.loadPDFBackgroundImage(pdfBackground, size: renderSize)
                 // Discard result if the task was cancelled mid-flight (e.g., pdfBackground changed).
                 guard !Task.isCancelled else { return }
                 if let image {
