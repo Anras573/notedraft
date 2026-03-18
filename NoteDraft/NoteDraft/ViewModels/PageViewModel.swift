@@ -237,6 +237,20 @@ class PageViewModel: ObservableObject {
         return image
     }
     
+    // MARK: - PDF Background
+
+    /// Loads and returns the rendered UIImage for the current PDF background page.
+    /// Rendering is performed off the main thread via PDFStorageService.
+    /// Returns nil if the page has no PDF background, or if rendering fails (e.g. missing file).
+    func loadPDFBackgroundImage(size: CGSize) async -> UIImage? {
+        guard let pdfBackground = page.pdfBackground else { return nil }
+        return await PDFStorageService.shared.renderPage(
+            index: pdfBackground.pageIndex,
+            of: pdfBackground.pdfName,
+            at: size
+        )
+    }
+
     /// Clears the image cache (useful for memory management)
     func clearImageCache() {
         imageCacheLock.lock()

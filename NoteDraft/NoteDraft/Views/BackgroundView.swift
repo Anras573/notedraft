@@ -10,13 +10,20 @@ import SwiftUI
 struct BackgroundView: View {
     let backgroundType: BackgroundType
     let customImageName: String?
+    let pdfBackground: PDFBackground?
     let viewModel: PageViewModel?
     
     @State private var loadedBackgroundImage: UIImage?
     
-    init(backgroundType: BackgroundType, customImageName: String?, viewModel: PageViewModel? = nil) {
+    init(
+        backgroundType: BackgroundType,
+        customImageName: String?,
+        pdfBackground: PDFBackground? = nil,
+        viewModel: PageViewModel? = nil
+    ) {
         self.backgroundType = backgroundType
         self.customImageName = customImageName
+        self.pdfBackground = pdfBackground
         self.viewModel = viewModel
     }
     
@@ -51,9 +58,10 @@ struct BackgroundView: View {
                     }
                     
                 case .pdfPage:
-                    // PDF page background rendering is handled in Phase 3.
-                    // For now fall through to a blank white canvas.
-                    EmptyView()
+                    PDFPageBackgroundView(
+                        pdfBackground: pdfBackground,
+                        viewModel: viewModel
+                    )
                 }
             }
         }
@@ -74,6 +82,71 @@ struct BackgroundView: View {
         let image = await vm.loadImage(named: imageName)
         await MainActor.run {
             loadedBackgroundImage = image
+        }
+    }
+}
+
+// MARK: - PDF Page Background View
+
+/// Renders a single PDF page as a read-only background.
+///
+/// Loading phases:
+/// - `.idle` / `.loading`: shows a spinner (`.idle` transitions to `.loading` immediately when the task starts).
+/// - `.loaded`: displays the rendered page image, scaled to fill the view width while preserving aspect ratio.
+/// - `.unavailable`: shown when `pdfBackground` or `viewModel` is nil, or when the PDF file is missing / corrupt.
+struct PDFPageBackgroundView: View {
+    let pdfBackground: PDFBackground?
+    let viewModel: PageViewModel?
+
+    private enum LoadPhase {
+        case idle
+        case loading
+        case loaded(UIImage)
+        case unavailable
+    }
+
+    @State private var loadPhase: LoadPhase = .idle
+
+    var body: some View {
+        GeometryReader { geometry in
+            Group {
+                switch loadPhase {
+                case .idle, .loading:
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        ProgressView()
+                    }
+                case .loaded(let image):
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: geometry.size.width, alignment: .top)
+                case .unavailable:
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.fill.badge.exclamationmark")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text("PDF unavailable")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .task(id: pdfBackground) {
+                guard let viewModel, let pdfBackground else {
+                    loadPhase = .unavailable
+                    return
+                }
+                loadPhase = .loading
+                if let image = await viewModel.loadPDFBackgroundImage(size: geometry.size) {
+                    loadPhase = .loaded(image)
+                } else {
+                    loadPhase = .unavailable
+                }
+            }
         }
     }
 }
