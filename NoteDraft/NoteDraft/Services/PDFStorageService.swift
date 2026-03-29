@@ -209,8 +209,8 @@ class PDFStorageService {
 
     /// Renders a specific page of a stored PDF as a `UIImage` at the given size.
     /// Uses an in-memory LRU cache; rendering is performed off the main thread.
-    /// The returned task inherits structured-concurrency cancellation so that callers
-    /// (e.g. a SwiftUI `.task(id:)`) can cancel it when the id changes.
+    /// Render work runs in a child task so cancellation from the caller's task propagates
+    /// (e.g., when a SwiftUI `.task(id:)` is cancelled because its id changes).
     func renderPage(index: Int, of pdfName: String, at size: CGSize) async -> UIImage? {
         let key = CacheKey(pdfName: pdfName, pageIndex: index, size: size)
 
