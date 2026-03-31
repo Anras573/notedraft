@@ -91,12 +91,12 @@ struct BackgroundView: View {
 /// Renders a single PDF page as a read-only background.
 ///
 /// Loading phases:
-/// - `.idle`: initial state; also shown during layout passes where `viewSize` is still zero (the render
-///            is deferred until a non-zero pixel-aligned size is available).
+/// - `.idle`: initial state before any render has been requested for the current `pdfBackground`.
 /// - `.loading`: shown while the render task is in progress after a non-zero size is known.
 /// - `.loaded`: displays the rendered page image, scaled to fill the view width while preserving aspect ratio,
 ///              pinned to the top of the container.
 /// - `.unavailable`: shown when `pdfBackground` or `viewModel` is nil, or when the PDF file is missing / corrupt.
+@MainActor
 struct PDFPageBackgroundView: View {
     let pdfBackground: PDFBackground?
     let viewModel: PageViewModel?
