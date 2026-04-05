@@ -3,22 +3,29 @@
 ## Overview
 This document identifies features specified in the `/specs` directory that are not yet implemented in the NoteDraft app.
 
-**Analysis Date:** 2026-01-15  
-**Last Update:** 2026-01-15  
+**Analysis Date:** 2026-04-05  
+**Last Update:** 2026-04-05  
 **Specifications Reviewed:**
 - `/specs/overview.md`
 - `/specs/user-stories.md`
 - `/specs/image-insertion.md`
 - `/specs/continuous-page-rendering.md`
+- `/specs/pdf-background.md`
 
 ---
 
 ## Summary
-The NoteDraft app has achieved **100% feature completeness** for all MVP specifications! All core features have been fully implemented, including the previously missing custom background image selection feature.
+The NoteDraft app has **one remaining missing feature** from the MVP specifications. All previously missing features have been implemented, and the PDF background feature (new spec) is mostly complete — only Phase 4 (Manual PDF Page Selection) has not yet been implemented.
+
+### Remaining Missing Feature: Manual PDF Page Background Selection
+
+**Status:** ❌ **NOT YET IMPLEMENTED**  
+**Priority:** Medium (Phase 4 of the PDF background spec)  
+**Specification Reference:** `specs/pdf-background.md` Section 3 (Manual PDF Page Background Selection), Phase 4
 
 ### Previously Missing Feature: Custom Background Image Selection
 
-**Status:** ✅ **NOW IMPLEMENTED**  
+**Status:** ✅ **IMPLEMENTED**  
 **Priority:** High (specified in core features)  
 **Specification Reference:** `specs/overview.md` Section 4 (Backgrounds), `specs/user-stories.md` (Backgrounds section)  
 **Implementation Date:** Between 2026-01-09 and 2026-01-15
@@ -27,7 +34,56 @@ The NoteDraft app has achieved **100% feature completeness** for all MVP specifi
 
 ## Detailed Analysis
 
-### 1. Custom Background Image Selection
+### 1. Manual PDF Page Background Selection (❌ NOT YET IMPLEMENTED)
+
+#### What Is Specified
+According to `specs/pdf-background.md` Phase 4 and Section 3 (Manual PDF Page Background Selection):
+
+**Feature Description:**
+- Users should be able to manually assign a PDF page as the background for any existing page (not just pages created via the "Import PDF" flow).
+- In the background type selector, a "PDF Page" option should be available.
+- Selecting "PDF Page" first prompts the user to choose a previously imported PDF (or import a new one).
+- After selecting a PDF, a page picker (thumbnail grid — `PDFPagePickerView`) lets the user choose which PDF page to use as the background.
+- Selecting a page assigns that PDF page as the background and replaces any previous background.
+
+**User Story from `specs/pdf-background.md`:**
+```
+### Assign PDF Page Background Manually
+- Given I am on a page
+- When I open the background selector
+- And I choose "PDF Page"
+- Then I can browse previously imported PDFs or import a new one
+- When I select a PDF and choose a specific page
+- Then That [sic] PDF page becomes the background of the current page
+- And I can draw on top of it immediately
+```
+
+#### What Is Not Yet Implemented
+
+**Missing components:**
+- ❌ `PDFPagePickerView` — a modal sheet with a scrollable thumbnail grid for picking a PDF page
+- ❌ `setPDFBackground(pdfName:pageIndex:)` method in `PageViewModel`
+- ❌ "Select PDF Page" toolbar button in `PageView` (shown only when background is `.pdfPage`)
+- ❌ `.pdfPage` included in `BackgroundType.selectableCases` — currently excluded so users cannot manually switch to PDF background
+
+**Current state of `BackgroundType.selectableCases`:**
+```swift
+// BackgroundType.swift — pdfPage is excluded from the picker
+static var selectableCases: [BackgroundType] {
+    allCases.filter { $0 != .pdfPage }
+}
+```
+This means `.pdfPage` can only be set programmatically by the PDF import flow; users cannot manually select it or change an existing page's background to a PDF page.
+
+**Implementation needed (from spec Phase 4):**
+1. Add `PDFPagePickerView` sheet (thumbnail grid per spec)
+2. Add "Select PDF Page" toolbar button to `PageView` (icon: `doc.text.magnifyingglass`, visible only when background is `.pdfPage`)
+3. Implement `setPDFBackground(pdfName:pageIndex:)` in `PageViewModel`
+4. Include `.pdfPage` in `BackgroundType.selectableCases` and handle the flow for choosing a PDF when `.pdfPage` is selected from the picker
+
+---
+
+### 2. Custom Background Image Selection
 
 #### What Was Specified
 According to `specs/overview.md` and `specs/user-stories.md`:
@@ -195,6 +251,42 @@ func setBackgroundImage(_ image: UIImage) throws {
    - ✅ Canvas visibility management
    - ✅ Memory-efficient rendering
 
+#### From `specs/pdf-background.md`:
+1. **PDF Import** (Phase 2)
+   - ✅ "Import PDF" toolbar button in `NotebookView` (icon: `doc.badge.plus`)
+   - ✅ System file importer restricted to PDF files (`UTType.pdf`)
+   - ✅ `importPDF(from:)` in `NotebookViewModel` — copies PDF to `Documents/pdfs/` via `PDFStorageService`
+   - ✅ Automatically creates one page per PDF page (capped at 100 pages)
+   - ✅ Non-blocking alert when PDF has more than 100 pages
+   - ✅ Error alert shown on import failure; no pages added
+
+2. **PDF Page as Background** (Phase 3)
+   - ✅ `BackgroundType.pdfPage` case added
+   - ✅ `PDFBackground` model (`pdfName`, `pageIndex`)
+   - ✅ `Page.pdfBackground` property with invariant enforcement
+   - ✅ `PDFPageBackgroundView` in `BackgroundView.swift` with loading, loaded, and unavailable states
+   - ✅ Missing-PDF placeholder (`"PDF unavailable"` with warning icon)
+   - ✅ `loadPDFBackgroundImage(_:size:)` in `PageViewModel` delegates to `PDFStorageService.renderPage`
+   - ✅ Correct z-order: PDF background → content images → drawing canvas
+
+3. **Manual PDF Page Background Selection** (Phase 4) ← **❌ NOT YET IMPLEMENTED**
+   - ❌ `PDFPagePickerView` sheet (thumbnail grid for choosing a PDF page)
+   - ❌ `setPDFBackground(pdfName:pageIndex:)` in `PageViewModel`
+   - ❌ "Select PDF Page" toolbar button in `PageView`
+   - ❌ `.pdfPage` included in `BackgroundType.selectableCases`
+
+4. **PDF Storage Lifecycle & Cleanup** (Phase 5)
+   - ✅ `PDFStorageService.deleteUnreferencedPDFs(keeping:)` with in-progress import safety
+   - ✅ `NotebookViewModel.cleanupUnreferencedPDFs()` called after page/notebook deletion
+   - ✅ `DataStore.referencedPDFNames()` provides the global reference set
+
+5. **Performance & Memory** (Phase 6)
+   - ✅ LRU cache (10-entry) for rendered PDF page images in `PDFStorageService`
+   - ✅ Rendering performed off the main thread via `async`/`await`
+   - ✅ Memory warning observer flushes the LRU cache
+   - ✅ `PDFPageBackgroundView` uses pixel-aligned sizes to avoid redundant re-renders
+   - ✅ PDF backgrounds compatible with continuous page view (lazy per-page rendering)
+
 ---
 
 ## Future Enhancements (Not Required for MVP)
@@ -220,6 +312,14 @@ The following features are mentioned in specs as "Future Enhancements" and are c
 - Custom divider styles
 - Horizontal scroll option
 
+### From `specs/pdf-background.md` - Future Enhancements:
+- PDF navigation toolbar (previous/next PDF-backed page buttons)
+- PDF re-import / update while preserving drawings
+- Selective page import (choose which PDF pages to import)
+- PDF annotation export (merge PDF content with PencilKit drawing layer)
+- Search PDF content (`PDFPage.string`)
+- Paste PDF from clipboard
+
 ### From `specs/overview.md` - Non-Goals:
 - Accounts or authentication
 - Subscriptions or payments
@@ -230,18 +330,22 @@ The following features are mentioned in specs as "Future Enhancements" and are c
 
 ## Conclusion
 
-The NoteDraft app has achieved **100% feature completeness** based on the MVP specifications! All core features are fully implemented with high-quality architecture, proper MVVM pattern usage, and thoughtful performance optimizations.
+The NoteDraft app is **nearly complete** for all MVP specifications, with one remaining missing feature from the `specs/pdf-background.md` spec: **Manual PDF Page Background Selection** (Phase 4).
 
-**All MVP Features Implemented:**
+**Implemented MVP Features:**
 - ✅ Complete notebook management (create, rename, delete)
 - ✅ Complete page management (add, remove, reorder)
 - ✅ Full PencilKit drawing integration with undo/redo
 - ✅ Complete background patterns (blank, lined, grid)
-- ✅ **Full custom background image selection** ← Previously missing, now complete!
+- ✅ Full custom background image selection
 - ✅ Full content image insertion and management
 - ✅ Continuous page rendering mode with lazy loading
 - ✅ Robust persistence layer with auto-save
 - ✅ Performance optimizations (image caching, lazy loading, memory management)
+- ✅ PDF background feature — import, rendering, cleanup, and performance improvements (Phases 1, 2, 3, 5, 6 of `specs/pdf-background.md`)
+
+**Remaining Missing Feature:**
+- ❌ **Manual PDF Page Background Selection** (`specs/pdf-background.md` Phase 4) — users cannot manually assign a PDF page as the background for an existing page via the background type picker
 
 **Implementation Quality:**
 - ✅ Clean MVVM architecture
@@ -251,5 +355,3 @@ The NoteDraft app has achieved **100% feature completeness** based on the MVP sp
 - ✅ Accessibility labels
 - ✅ Image optimization (automatic resizing)
 - ✅ File cleanup on deletion
-
-The app now has **complete coverage of all MVP features** specified in the `/specs` directory. No features are missing from the core specifications.
