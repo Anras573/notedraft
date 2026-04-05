@@ -3,7 +3,7 @@
 ## Overview
 This document identifies features specified in the `/specs` directory that are not yet implemented in the NoteDraft app.
 
-**Analysis Date:** 2026-01-15  
+**Analysis Date:** 2026-04-05  
 **Last Update:** 2026-04-05  
 **Specifications Reviewed:**
 - `/specs/overview.md`
@@ -54,7 +54,7 @@ According to `specs/pdf-background.md` Phase 4 and Section 3 (Manual PDF Page Ba
 - And I choose "PDF Page"
 - Then I can browse previously imported PDFs or import a new one
 - When I select a PDF and choose a specific page
-- Then That PDF page becomes the background of the current page
+- Then That [sic] PDF page becomes the background of the current page
 - And I can draw on top of it immediately
 ```
 
@@ -342,7 +342,7 @@ The NoteDraft app is **nearly complete** for all MVP specifications, with one re
 - ✅ Continuous page rendering mode with lazy loading
 - ✅ Robust persistence layer with auto-save
 - ✅ Performance optimizations (image caching, lazy loading, memory management)
-- ✅ PDF import — create pages from PDF files (Phases 1, 2, 3, 5, 6 of `specs/pdf-background.md`)
+- ✅ PDF background feature — import, rendering, cleanup, and performance improvements (Phases 1, 2, 3, 5, 6 of `specs/pdf-background.md`)
 
 **Remaining Missing Feature:**
 - ❌ **Manual PDF Page Background Selection** (`specs/pdf-background.md` Phase 4) — users cannot manually assign a PDF page as the background for an existing page via the background type picker
