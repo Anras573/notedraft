@@ -208,7 +208,10 @@ class PDFStorageService {
     }
 
     /// Renders a specific page of a stored PDF as a `UIImage` at the given size.
-    /// Uses an in-memory LRU cache; rendering is performed off the main thread.
+    /// Uses an in-memory LRU cache. Rendering is performed off the main thread via a
+    /// child task, so the calling actor (e.g. `@MainActor`) is not blocked. Cancellation
+    /// from the caller's task propagates to the child task (e.g. when a SwiftUI
+    /// `.task(id:)` is cancelled because its id changes).
     func renderPage(index: Int, of pdfName: String, at size: CGSize) async -> UIImage? {
         let key = CacheKey(pdfName: pdfName, pageIndex: index, size: size)
 
@@ -218,25 +221,32 @@ class PDFStorageService {
         cacheLock.unlock()
         if let cached { return cached }
 
-        // Render off the main thread
-        return await Task.detached(priority: .userInitiated) { [weak self] in
-            guard let self else { return nil }
-            let url = self.localURL(for: pdfName)
-            guard let document = PDFDocument(url: url),
-                  index >= 0, index < document.pageCount,
-                  let page = document.page(at: index) else {
-                return nil
-            }
+        // Dispatch heavy work to the global concurrent executor via a child task so:
+        //   • The calling actor (e.g. @MainActor) is not blocked during rendering.
+        //   • Parent-task cancellation is inherited by the child task.
+        return await withTaskGroup(of: UIImage?.self) { group in
+            group.addTask(priority: .userInitiated) { [weak self] in
+                guard let self else { return nil }
+                let url = self.localURL(for: pdfName)
+                guard let document = PDFDocument(url: url),
+                      index >= 0, index < document.pageCount,
+                      let page = document.page(at: index) else {
+                    return nil
+                }
 
-            let image = self.renderPDFPage(page, at: size)
+                // Check cancellation before the expensive render step.
+                guard !Task.isCancelled else { return nil }
+                let image = self.renderPDFPage(page, at: size)
 
-            if let image {
-                self.cacheLock.lock()
-                self.cache.insert(image, for: key)
-                self.cacheLock.unlock()
+                if let image {
+                    self.cacheLock.lock()
+                    self.cache.insert(image, for: key)
+                    self.cacheLock.unlock()
+                }
+                return image
             }
-            return image
-        }.value
+            return await group.next() ?? nil
+        }
     }
 
     /// Returns thumbnail `UIImage`s for all pages of a stored PDF.

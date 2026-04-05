@@ -321,19 +321,20 @@ final class BackgroundTypeTests: XCTestCase {
         // Given
         let selectable = BackgroundType.selectableCases
 
-        // Then – pdfPage must not appear in selectable cases until Phase 3
+        // Then – pdfPage is set programmatically (import flow) and must not appear in the picker
         XCTAssertFalse(selectable.contains(.pdfPage))
     }
 
-    func testSelectableCasesContainsAllOtherCases() {
+    func testSelectableCasesContainsAllExpectedCases() {
         // Given
         let selectable = BackgroundType.selectableCases
 
-        // Then – all non-pdfPage cases should be selectable
+        // Then – all manually-selectable cases should be present; pdfPage is excluded
         XCTAssertTrue(selectable.contains(.blank))
         XCTAssertTrue(selectable.contains(.lined))
         XCTAssertTrue(selectable.contains(.grid))
         XCTAssertTrue(selectable.contains(.customImage))
+        XCTAssertFalse(selectable.contains(.pdfPage))
         XCTAssertEqual(selectable.count, BackgroundType.allCases.count - 1)
     }
 }

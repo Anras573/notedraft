@@ -10,13 +10,20 @@ import SwiftUI
 struct BackgroundView: View {
     let backgroundType: BackgroundType
     let customImageName: String?
+    let pdfBackground: PDFBackground?
     let viewModel: PageViewModel?
     
     @State private var loadedBackgroundImage: UIImage?
     
-    init(backgroundType: BackgroundType, customImageName: String?, viewModel: PageViewModel? = nil) {
+    init(
+        backgroundType: BackgroundType,
+        customImageName: String?,
+        pdfBackground: PDFBackground? = nil,
+        viewModel: PageViewModel? = nil
+    ) {
         self.backgroundType = backgroundType
         self.customImageName = customImageName
+        self.pdfBackground = pdfBackground
         self.viewModel = viewModel
     }
     
@@ -51,9 +58,10 @@ struct BackgroundView: View {
                     }
                     
                 case .pdfPage:
-                    // PDF page background rendering is handled in Phase 3.
-                    // For now fall through to a blank white canvas.
-                    EmptyView()
+                    PDFPageBackgroundView(
+                        pdfBackground: pdfBackground,
+                        viewModel: viewModel
+                    )
                 }
             }
         }
@@ -74,6 +82,112 @@ struct BackgroundView: View {
         let image = await vm.loadImage(named: imageName)
         await MainActor.run {
             loadedBackgroundImage = image
+        }
+    }
+}
+
+// MARK: - PDF Page Background View
+
+/// Renders a single PDF page as a read-only background.
+///
+/// Loading phases:
+/// - `.idle`: initial state before any render has been requested for the current `pdfBackground`.
+/// - `.loading`: shown while the render task is in progress after a non-zero size is known.
+/// - `.loaded`: displays the rendered page image, scaled to fill the view width while preserving aspect ratio,
+///              pinned to the top of the container.
+/// - `.unavailable`: shown when `pdfBackground` or `viewModel` is nil, or when the PDF file is missing / corrupt.
+@MainActor
+struct PDFPageBackgroundView: View {
+    let pdfBackground: PDFBackground?
+    let viewModel: PageViewModel?
+
+    private enum LoadPhase {
+        case idle
+        case loading
+        case loaded(UIImage)
+        case unavailable
+    }
+
+    /// Combined task identity: the render task re-runs when `pdfBackground` changes OR
+    /// when the view size transitions from zero to non-zero (avoiding a permanent
+    /// `.unavailable` result on the first layout pass where `geometry.size` is `.zero`).
+    private struct RenderRequest: Equatable {
+        let pdfBackground: PDFBackground?
+        let normalizedSize: CGSize
+    }
+
+    @State private var loadPhase: LoadPhase = .idle
+    @State private var viewSize: CGSize = .zero
+
+    /// Returns `size` rounded to the nearest screen pixel boundary so that
+    /// sub-point layout jitter (e.g. from rotation or split-view resizing) does
+    /// not produce unnecessary cache misses or re-renders.
+    private func pixelAligned(_ size: CGSize) -> CGSize {
+        let scale = UIScreen.main.scale
+        return CGSize(
+            width: (size.width * scale).rounded() / scale,
+            height: (size.height * scale).rounded() / scale
+        )
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            Group {
+                switch loadPhase {
+                case .idle, .loading:
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        ProgressView()
+                    }
+                case .loaded(let image):
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        // Width-constrain the image; height is determined by aspect ratio.
+                        // The second .frame pins the image to the top of the container so
+                        // that the drawing layer and PDF content share the same origin.
+                        .frame(width: geometry.size.width)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                case .unavailable:
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.fill.badge.exclamationmark")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text("PDF unavailable")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                viewSize = geometry.size
+            }
+            .onChange(of: geometry.size) { _, newSize in
+                viewSize = newSize
+            }
+            .task(id: RenderRequest(pdfBackground: pdfBackground, normalizedSize: pixelAligned(viewSize))) {
+                guard let viewModel, let pdfBackground else {
+                    loadPhase = .unavailable
+                    return
+                }
+                // Compute the pixel-aligned size once and use it for both the zero-size guard and
+                // the render call, so a transient sub-pixel `viewSize > 0` that rounds down to zero
+                // defers rendering instead of incorrectly showing the `.unavailable` state.
+                let renderSize = pixelAligned(viewSize)
+                guard renderSize.width > 0, renderSize.height > 0 else { return }
+                loadPhase = .loading
+                let image = await viewModel.loadPDFBackgroundImage(pdfBackground, size: renderSize)
+                // Discard result if the task was cancelled mid-flight (e.g., pdfBackground changed).
+                guard !Task.isCancelled else { return }
+                if let image {
+                    loadPhase = .loaded(image)
+                } else {
+                    loadPhase = .unavailable
+                }
+            }
         }
     }
 }

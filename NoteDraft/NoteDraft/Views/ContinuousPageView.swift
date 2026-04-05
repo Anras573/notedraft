@@ -140,6 +140,7 @@ struct PageCanvasContent: View {
             BackgroundView(
                 backgroundType: viewModel.selectedBackgroundType,
                 customImageName: viewModel.page.backgroundImage,
+                pdfBackground: viewModel.page.pdfBackground,
                 viewModel: viewModel
             )
             

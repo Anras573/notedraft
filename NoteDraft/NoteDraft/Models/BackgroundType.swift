@@ -17,7 +17,9 @@ enum BackgroundType: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// Cases shown in the background picker.
-    /// `.pdfPage` is excluded until PDF background rendering is fully implemented (Phase 3).
+    /// `.pdfPage` is excluded because it is set programmatically by the PDF import
+    /// flow and requires a valid `PDFBackground` value; manually selecting it without
+    /// a backing PDF would result in an "unavailable" state.
     static var selectableCases: [BackgroundType] {
         allCases.filter { $0 != .pdfPage }
     }
