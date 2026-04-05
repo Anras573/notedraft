@@ -240,7 +240,8 @@ class PageViewModel: ObservableObject {
     // MARK: - PDF Background
 
     /// Loads and returns the rendered UIImage for the specified PDF background page.
-    /// Rendering is performed off the main thread via PDFStorageService.
+    /// Rendering is performed off the main thread via PDFStorageService (child task on the
+    /// global concurrent executor); this call does not block the main actor.
     /// Returns nil if rendering fails (e.g. missing or corrupt file).
     func loadPDFBackgroundImage(_ pdfBackground: PDFBackground, size: CGSize) async -> UIImage? {
         return await PDFStorageService.shared.renderPage(
