@@ -79,7 +79,8 @@ struct PageView: View {
             
             // PDF page selector (shown only when a PDF page background is active)
             ToolbarItem(placement: .topBarLeading) {
-                if viewModel.selectedBackgroundType == .pdfPage {
+                if viewModel.selectedBackgroundType == .pdfPage,
+                   viewModel.page.pdfBackground?.pdfName != nil {
                     Button {
                         showPDFPagePicker = true
                     } label: {
@@ -160,6 +161,13 @@ struct PageView: View {
                             Button("Cancel") { showPDFPagePicker = false }
                         }
                     }
+                }
+            } else {
+                // Fallback: pdfBackground is nil (e.g. corrupted data).
+                // Let the user choose a new PDF instead.
+                PDFPickerView { pdfName, pageIndex in
+                    viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+                    showPDFPagePicker = false
                 }
             }
         }

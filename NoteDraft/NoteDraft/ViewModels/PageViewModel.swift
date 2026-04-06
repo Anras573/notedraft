@@ -240,9 +240,16 @@ class PageViewModel: ObservableObject {
     // MARK: - PDF Background
 
     /// Sets the specified PDF page as the background for the current page.
-    /// Clears any previous background settings, persists the change, and deregisters
-    /// the PDF from in-progress imports (no-op if this PDF was not freshly imported).
+    /// Also clears and deletes any previous custom background image so storage is
+    /// not left with an orphaned file. Persists the change and deregisters the PDF
+    /// from in-progress imports (no-op if this PDF was not freshly imported).
     func setPDFBackground(pdfName: String, pageIndex: Int) {
+        // Clean up the old custom background image file, if any.
+        if let oldImage = page.backgroundImage {
+            deleteImageFromStorage(oldImage)
+            removeCachedImage(oldImage)
+            page.backgroundImage = nil
+        }
         let pdfBackground = PDFBackground(pdfName: pdfName, pageIndex: pageIndex)
         page.pdfBackground = pdfBackground
         page.backgroundType = .pdfPage

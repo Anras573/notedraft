@@ -27,7 +27,10 @@ struct PDFPickerView: View {
     @State private var showImportError = false
     @State private var isImporting = false
     /// Held so the in-flight import can be cancelled when the sheet is dismissed.
+    /// Both the outer @MainActor wrapper task and the inner detached file-copy task
+    /// are retained so that cancellation propagates to the actual file work.
     @State private var importTask: Task<Void, Never>? = nil
+    @State private var importWorkerTask: Task<String, Error>? = nil
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -69,6 +72,7 @@ struct PDFPickerView: View {
         }
         .onDisappear {
             importTask?.cancel()
+            importWorkerTask?.cancel()
         }
     }
 
@@ -129,14 +133,22 @@ struct PDFPickerView: View {
                 isImporting = true
                 do {
                     // importPDF(from:) is a synchronous, blocking operation (file copy + PDF
-                    // document validation). Task.detached moves it off the main actor so the
-                    // UI remains responsive during import.
-                    let filename = try await Task.detached(priority: .userInitiated) {
+                    // document validation). A separate detached task moves it off the main
+                    // actor so the UI remains responsive. We hold a reference to the detached
+                    // task so that cancellation (e.g. sheet dismissed) propagates to the
+                    // actual file work, not just to the awaiting side.
+                    let workerTask = Task.detached(priority: .userInitiated) {
                         try PDFStorageService.shared.importPDF(from: url)
-                    }.value
+                    }
+                    importWorkerTask = workerTask
+                    let filename = try await workerTask.value
+                    importWorkerTask = nil
                     isImporting = false
                     availablePDFs = PDFStorageService.shared.listAvailablePDFs()
                     navigationPath.append(filename)
+                } catch is CancellationError {
+                    // Sheet was dismissed mid-import; clean up silently.
+                    isImporting = false
                 } catch {
                     isImporting = false
                     importError = error
@@ -222,6 +234,8 @@ private struct PDFListItemView: View {
 // MARK: - PDFPagePickerView
 
 /// A scrollable thumbnail grid for selecting a specific page of an imported PDF.
+/// Thumbnails are loaded lazily per grid cell so that only visible pages are rendered,
+/// keeping memory usage low even for large documents.
 ///
 /// - Parameters:
 ///   - pdfName: The UUID-based filename of the stored PDF.
@@ -230,15 +244,31 @@ struct PDFPagePickerView: View {
     let pdfName: String
     let onSelect: (_ pageIndex: Int) -> Void
 
-    @State private var thumbnails: [UIImage] = []
-    @State private var isLoading = true
+    @State private var pageCount: Int? = nil
+    @State private var isLoadingCount = true
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoadingCount {
                 ProgressView("Loading pages…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if thumbnails.isEmpty {
+            } else if let count = pageCount, count > 0 {
+                ScrollView {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 150))],
+                        spacing: 16
+                    ) {
+                        ForEach(0 ..< count, id: \.self) { index in
+                            PDFPageThumbnailCell(
+                                pdfName: pdfName,
+                                pageIndex: index,
+                                onSelect: onSelect
+                            )
+                        }
+                    }
+                    .padding()
+                }
+            } else {
                 VStack(spacing: 8) {
                     Image(systemName: "doc.fill.badge.exclamationmark")
                         .font(.largeTitle)
@@ -247,42 +277,60 @@ struct PDFPagePickerView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 150))],
-                        spacing: 16
-                    ) {
-                        ForEach(thumbnails.indices, id: \.self) { index in
-                            Button {
-                                onSelect(index)
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Image(uiImage: thumbnails[index])
-                                        .resizable()
-                                        .scaledToFit()
-                                        .border(Color.secondary, width: 0.5)
-                                    Text("Page \(index + 1)")
-                                        .font(.caption)
-                                        .foregroundColor(.primary)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding()
-                }
             }
         }
         .navigationTitle("Select PDF Page")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: pdfName) {
-            isLoading = true
-            thumbnails = await PDFStorageService.shared.thumbnails(
-                for: pdfName,
-                size: CGSize(width: 300, height: 400)
+            isLoadingCount = true
+            pageCount = await Task.detached(priority: .userInitiated) {
+                PDFStorageService.shared.pageCount(for: pdfName)
+            }.value
+            isLoadingCount = false
+        }
+    }
+}
+
+// MARK: - PDFPageThumbnailCell
+
+/// A single cell in `PDFPagePickerView`'s grid.
+/// Each cell loads its thumbnail independently so only visible cells trigger rendering.
+private struct PDFPageThumbnailCell: View {
+    let pdfName: String
+    let pageIndex: Int
+    let onSelect: (_ pageIndex: Int) -> Void
+
+    @State private var thumbnail: UIImage? = nil
+
+    var body: some View {
+        Button {
+            onSelect(pageIndex)
+        } label: {
+            VStack(spacing: 4) {
+                Group {
+                    if let image = thumbnail {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Color(UIColor.secondarySystemBackground)
+                            .aspectRatio(CGSize(width: 3, height: 4), contentMode: .fit)
+                            .overlay(ProgressView())
+                    }
+                }
+                .border(Color.secondary, width: 0.5)
+                Text("Page \(pageIndex + 1)")
+                    .font(.caption)
+                    .foregroundColor(.primary)
+            }
+        }
+        .buttonStyle(.plain)
+        .task(id: "\(pdfName)-\(pageIndex)") {
+            thumbnail = await PDFStorageService.shared.renderPage(
+                index: pageIndex,
+                of: pdfName,
+                at: CGSize(width: 300, height: 400)
             )
-            isLoading = false
         }
     }
 }
