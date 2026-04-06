@@ -268,6 +268,19 @@ class PDFStorageService {
         }.value
     }
 
+    /// Returns the filenames of all PDF files currently stored in `Documents/pdfs/`.
+    /// Files are sorted alphabetically by filename.
+    func listAvailablePDFs() -> [String] {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: pdfDirectory,
+            includingPropertiesForKeys: nil
+        ) else { return [] }
+        return contents
+            .filter { $0.pathExtension.lowercased() == "pdf" }
+            .map { $0.lastPathComponent }
+            .sorted()
+    }
+
     /// Deletes a PDF file from storage.
     func deletePDF(named pdfName: String) {
         let url = localURL(for: pdfName)

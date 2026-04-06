@@ -239,6 +239,20 @@ class PageViewModel: ObservableObject {
     
     // MARK: - PDF Background
 
+    /// Sets the specified PDF page as the background for the current page.
+    /// Clears any previous background settings, persists the change, and deregisters
+    /// the PDF from in-progress imports (no-op if this PDF was not freshly imported).
+    func setPDFBackground(pdfName: String, pageIndex: Int) {
+        let pdfBackground = PDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+        page.pdfBackground = pdfBackground
+        page.backgroundType = .pdfPage
+        selectedBackgroundType = .pdfPage
+        saveChanges()
+        // Deregister from in-progress imports if this was freshly imported via the
+        // manual-selection flow. finishImport is a no-op for already-finished imports.
+        PDFStorageService.shared.finishImport(filename: pdfName)
+    }
+
     /// Loads and returns the rendered UIImage for the specified PDF background page.
     /// Rendering is performed off the main thread via PDFStorageService (child task on the
     /// global concurrent executor); this call does not block the main actor.

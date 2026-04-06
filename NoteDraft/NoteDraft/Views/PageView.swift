@@ -20,6 +20,10 @@ struct PageView: View {
     @State private var backgroundImageLoadTask: Task<Void, Never>?
     @State private var isLoadingImage = false
     @State private var isLoadingBackgroundImage = false
+    /// Shown when the user picks "PDF Page" from the background menu; allows choosing a PDF then a page.
+    @State private var showPDFPicker = false
+    /// Shown when the "Select PDF Page" toolbar button is tapped; picks a new page from the current PDF.
+    @State private var showPDFPagePicker = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -44,7 +48,11 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.selectableCases) { type in
                         Button {
-                            viewModel.setBackgroundType(type)
+                            if type == .pdfPage {
+                                showPDFPicker = true
+                            } else {
+                                viewModel.setBackgroundType(type)
+                            }
                         } label: {
                             HStack {
                                 Text(type.displayName)
@@ -66,6 +74,18 @@ struct PageView: View {
                         Image(systemName: "photo.fill.on.rectangle.fill")
                     }
                     .accessibilityLabel("Select background image")
+                }
+            }
+            
+            // PDF page selector (shown only when a PDF page background is active)
+            ToolbarItem(placement: .topBarLeading) {
+                if viewModel.selectedBackgroundType == .pdfPage {
+                    Button {
+                        showPDFPagePicker = true
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                    }
+                    .accessibilityLabel("Select PDF page")
                 }
             }
             
@@ -120,6 +140,28 @@ struct PageView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(imageLoadErrorMessage)
+        }
+        // PDF picker sheet: browse/import PDFs then pick a page
+        .sheet(isPresented: $showPDFPicker) {
+            PDFPickerView { pdfName, pageIndex in
+                viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+            }
+        }
+        // PDF page picker sheet: pick a different page from the current PDF
+        .sheet(isPresented: $showPDFPagePicker) {
+            if let pdfName = viewModel.page.pdfBackground?.pdfName {
+                NavigationStack {
+                    PDFPagePickerView(pdfName: pdfName) { pageIndex in
+                        viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+                        showPDFPagePicker = false
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showPDFPagePicker = false }
+                        }
+                    }
+                }
+            }
         }
     }
     
