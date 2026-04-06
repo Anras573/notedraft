@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 // MARK: - PDFPickerView
@@ -285,7 +286,9 @@ struct PDFPagePickerView: View {
             // Use a child task (group.addTask) so that if SwiftUI cancels this .task
             // (e.g. the view disappears or pdfName changes), the page-count work is
             // also interrupted — Task.detached would not inherit that cancellation.
-            await withTaskGroup(of: Int?.self) { group in
+            // Element type is Int (non-optional) so group.next() returns Int? and
+            // unwraps cleanly into pageCount (Int?).
+            await withTaskGroup(of: Int.self) { group in
                 group.addTask(priority: .userInitiated) {
                     PDFStorageService.shared.pageCount(for: pdfName)
                 }
@@ -307,7 +310,7 @@ private struct PDFPageThumbnailCell: View {
     @State private var thumbnail: UIImage? = nil
     /// Held so that `.onDisappear` can cancel in-flight rendering work when the cell
     /// scrolls out of the `LazyVGrid`'s rendering window.
-    @State private var renderTask: Task<Void, Never>? = nil
+    @State private var renderTask: Task<UIImage?, Never>? = nil
 
     /// Stable, Equatable task identity — avoids allocating a new `String` on every layout pass.
     private struct RenderID: Equatable {
