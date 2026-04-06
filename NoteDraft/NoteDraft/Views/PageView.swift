@@ -144,16 +144,14 @@ struct PageView: View {
         }
         // PDF picker sheet: browse/import PDFs then pick a page
         .sheet(isPresented: $showPDFPicker) {
-            PDFPickerView { pdfName, pageIndex in
-                viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
-            }
+            PDFPickerView(onSelectPage: setPDFBackground)
         }
         // PDF page picker sheet: pick a different page from the current PDF
         .sheet(isPresented: $showPDFPagePicker) {
             if let pdfName = viewModel.page.pdfBackground?.pdfName {
                 NavigationStack {
                     PDFPagePickerView(pdfName: pdfName) { pageIndex in
-                        viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+                        setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
                         showPDFPagePicker = false
                     }
                     .toolbar {
@@ -165,12 +163,16 @@ struct PageView: View {
             } else {
                 // Fallback: pdfBackground is nil (e.g. corrupted data).
                 // Let the user choose a new PDF instead.
-                PDFPickerView { pdfName, pageIndex in
-                    viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
-                    showPDFPagePicker = false
-                }
+                PDFPickerView(onSelectPage: setPDFBackground)
             }
         }
+    }
+
+    /// Sets the PDF background via the view model and dismisses both picker sheets.
+    private func setPDFBackground(pdfName: String, pageIndex: Int) {
+        viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+        showPDFPicker = false
+        showPDFPagePicker = false
     }
     
     /// Helper method to handle image loading from PhotosPicker

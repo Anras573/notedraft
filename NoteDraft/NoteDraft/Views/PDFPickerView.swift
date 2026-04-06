@@ -131,6 +131,7 @@ struct PDFPickerView: View {
         case .success(let url):
             importTask = Task { @MainActor in
                 isImporting = true
+                defer { isImporting = false }
                 do {
                     // importPDF(from:) is a synchronous, blocking operation (file copy + PDF
                     // document validation). A separate detached task moves it off the main
@@ -143,14 +144,11 @@ struct PDFPickerView: View {
                     importWorkerTask = workerTask
                     let filename = try await workerTask.value
                     importWorkerTask = nil
-                    isImporting = false
                     availablePDFs = PDFStorageService.shared.listAvailablePDFs()
                     navigationPath.append(filename)
                 } catch is CancellationError {
                     // Sheet was dismissed mid-import; clean up silently.
-                    isImporting = false
                 } catch {
-                    isImporting = false
                     importError = error
                     showImportError = true
                 }
@@ -283,10 +281,16 @@ struct PDFPagePickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: pdfName) {
             isLoadingCount = true
-            pageCount = await Task.detached(priority: .userInitiated) {
-                PDFStorageService.shared.pageCount(for: pdfName)
-            }.value
-            isLoadingCount = false
+            defer { isLoadingCount = false }
+            // Use a child task (group.addTask) so that if SwiftUI cancels this .task
+            // (e.g. the view disappears or pdfName changes), the page-count work is
+            // also interrupted — Task.detached would not inherit that cancellation.
+            await withTaskGroup(of: Int?.self) { group in
+                group.addTask(priority: .userInitiated) {
+                    PDFStorageService.shared.pageCount(for: pdfName)
+                }
+                pageCount = await group.next()
+            }
         }
     }
 }
@@ -301,6 +305,15 @@ private struct PDFPageThumbnailCell: View {
     let onSelect: (_ pageIndex: Int) -> Void
 
     @State private var thumbnail: UIImage? = nil
+    /// Held so that `.onDisappear` can cancel in-flight rendering work when the cell
+    /// scrolls out of the `LazyVGrid`'s rendering window.
+    @State private var renderTask: Task<Void, Never>? = nil
+
+    /// Stable, Equatable task identity — avoids allocating a new `String` on every layout pass.
+    private struct RenderID: Equatable {
+        let pdfName: String
+        let pageIndex: Int
+    }
 
     var body: some View {
         Button {
@@ -325,12 +338,21 @@ private struct PDFPageThumbnailCell: View {
             }
         }
         .buttonStyle(.plain)
-        .task(id: "\(pdfName)-\(pageIndex)") {
-            thumbnail = await PDFStorageService.shared.renderPage(
-                index: pageIndex,
-                of: pdfName,
-                at: CGSize(width: 300, height: 400)
-            )
+        .task(id: RenderID(pdfName: pdfName, pageIndex: pageIndex)) {
+            renderTask?.cancel()
+            let task = Task(priority: .userInitiated) {
+                await PDFStorageService.shared.renderPage(
+                    index: pageIndex,
+                    of: pdfName,
+                    at: CGSize(width: 300, height: 400)
+                )
+            }
+            renderTask = task
+            thumbnail = await task.value
+        }
+        .onDisappear {
+            renderTask?.cancel()
+            renderTask = nil
         }
     }
 }
