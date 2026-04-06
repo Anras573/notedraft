@@ -26,6 +26,8 @@ struct PDFPickerView: View {
     @State private var importError: Error? = nil
     @State private var showImportError = false
     @State private var isImporting = false
+    /// Held so the in-flight import can be cancelled when the sheet is dismissed.
+    @State private var importTask: Task<Void, Never>? = nil
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -65,6 +67,9 @@ struct PDFPickerView: View {
         .onAppear {
             availablePDFs = PDFStorageService.shared.listAvailablePDFs()
         }
+        .onDisappear {
+            importTask?.cancel()
+        }
     }
 
     // MARK: - Private
@@ -74,6 +79,8 @@ struct PDFPickerView: View {
             if availablePDFs.isEmpty {
                 emptyStateView
             } else {
+                // List provides built-in lazy cell creation; only visible rows spawn their
+                // thumbnail-load tasks, so concurrent task count is bounded naturally.
                 List(availablePDFs, id: \.self) { pdfName in
                     NavigationLink(value: pdfName) {
                         PDFListItemView(pdfName: pdfName)
@@ -118,9 +125,12 @@ struct PDFPickerView: View {
     private func handleImportResult(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
-            Task { @MainActor in
+            importTask = Task { @MainActor in
                 isImporting = true
                 do {
+                    // importPDF(from:) is a synchronous, blocking operation (file copy + PDF
+                    // document validation). Task.detached moves it off the main actor so the
+                    // UI remains responsive during import.
                     let filename = try await Task.detached(priority: .userInitiated) {
                         try PDFStorageService.shared.importPDF(from: url)
                     }.value
@@ -134,7 +144,7 @@ struct PDFPickerView: View {
                 }
             }
         case .failure(let error):
-            guard !((error as? CocoaError)?.code == .userCancelled) else { return }
+            if (error as? CocoaError)?.code == .userCancelled { return }
             importError = error
             showImportError = true
         }
@@ -169,8 +179,10 @@ private struct PDFListItemView: View {
             .border(Color.secondary.opacity(0.4), width: 0.5)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Imported PDF")
+                Text(displayName)
                     .font(.body)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 if let count = pageCount {
                     Text("\(count) \(count == 1 ? "page" : "pages")")
                         .font(.caption)
@@ -180,16 +192,30 @@ private struct PDFListItemView: View {
         }
         .padding(.vertical, 4)
         .task(id: pdfName) {
-            async let thumbnailTask = PDFStorageService.shared.renderPage(
-                index: 0, of: pdfName, at: CGSize(width: 88, height: 120)
-            )
-            async let countTask: Int? = await Task.detached {
-                PDFStorageService.shared.pageCount(for: pdfName)
-            }.value
-            let (loadedThumb, loadedCount) = await (thumbnailTask, countTask)
-            thumbnail = loadedThumb
-            pageCount = loadedCount
+            // Run both file operations as concurrent child tasks so neither
+            // blocks the main actor.
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    let image = await PDFStorageService.shared.renderPage(
+                        index: 0, of: pdfName, at: CGSize(width: 88, height: 120)
+                    )
+                    await MainActor.run { thumbnail = image }
+                }
+                group.addTask {
+                    let count = PDFStorageService.shared.pageCount(for: pdfName)
+                    await MainActor.run { pageCount = count }
+                }
+            }
         }
+    }
+
+    // MARK: - Private
+
+    /// Returns a human-readable label for the PDF: the filename without its extension.
+    /// `PDFStorageService.importPDF(from:)` assigns a UUID-based filename to every import,
+    /// so this string is unique per imported document.
+    private var displayName: String {
+        URL(fileURLWithPath: pdfName).deletingPathExtension().lastPathComponent
     }
 }
 

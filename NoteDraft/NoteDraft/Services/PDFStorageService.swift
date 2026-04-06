@@ -13,6 +13,10 @@ import UIKit
 ///
 /// PDFs are stored in `Documents/pdfs/` with UUID-based filenames.
 /// Rendered page images are cached in memory using an LRU policy (up to 10 entries).
+///
+/// Thread safety: all shared mutable state (LRU cache and in-progress import set) is
+/// protected by dedicated `NSLock` instances, so every public method on this class is safe
+/// to call from any thread or Swift concurrency context (including `Task.detached`).
 class PDFStorageService {
     static let shared = PDFStorageService()
 
