@@ -303,11 +303,9 @@ struct PDFPagePickerView: View {
                 group.addTask(priority: .userInitiated) {
                     PDFStorageService.shared.pageCount(for: pdfName)
                 }
-                if let result = await group.next() {
-                    pageCount = result
-                } else {
-                    pageCount = nil
-                }
+                // group.next() returns Int?? (outer optional = "did a task finish?",
+                // inner optional = the Int? returned by pageCount). Flatten with ?? nil.
+                pageCount = await group.next() ?? nil
             }
         }
     }
