@@ -139,8 +139,18 @@ struct PDFPickerView: View {
                     // actor so the UI remains responsive. We hold a reference to the detached
                     // task so that cancellation (e.g. sheet dismissed) propagates to the
                     // actual file work, not just to the awaiting side.
-                    let workerTask = Task.detached(priority: .userInitiated) {
-                        try PDFStorageService.shared.importPDF(from: url)
+                    let workerTask = Task.detached(priority: .userInitiated) { () throws -> String in
+                        let filename = try PDFStorageService.shared.importPDF(from: url)
+                        // importPDF succeeded (file is now on disk and registered as
+                        // in-progress). If the outer task was cancelled while we were
+                        // copying, clean up the newly created file before rethrowing so
+                        // we don't leave an orphaned PDF registered in inProgressImportNames.
+                        if Task.isCancelled {
+                            PDFStorageService.shared.deletePDF(named: filename)
+                            PDFStorageService.shared.finishImport(filename: filename)
+                            throw CancellationError()
+                        }
+                        return filename
                     }
                     importWorkerTask = workerTask
                     let filename = try await workerTask.value
@@ -148,7 +158,7 @@ struct PDFPickerView: View {
                     availablePDFs = PDFStorageService.shared.listAvailablePDFs()
                     navigationPath.append(filename)
                 } catch is CancellationError {
-                    // Sheet was dismissed mid-import; clean up silently.
+                    // Sheet was dismissed mid-import; file already cleaned up in workerTask.
                 } catch {
                     importError = error
                     showImportError = true
@@ -286,13 +296,18 @@ struct PDFPagePickerView: View {
             // Use a child task (group.addTask) so that if SwiftUI cancels this .task
             // (e.g. the view disappears or pdfName changes), the page-count work is
             // also interrupted — Task.detached would not inherit that cancellation.
-            // Element type is Int (non-optional) so group.next() returns Int? and
-            // unwraps cleanly into pageCount (Int?).
-            await withTaskGroup(of: Int.self) { group in
+            // pageCount(for:) returns Int?, so the element type is also Int?.
+            // group.next() therefore returns Int?? (optional-of-optional); we flatten
+            // it back into pageCount (Int?) via optional binding.
+            await withTaskGroup(of: Int?.self) { group in
                 group.addTask(priority: .userInitiated) {
                     PDFStorageService.shared.pageCount(for: pdfName)
                 }
-                pageCount = await group.next()
+                if let result = await group.next() {
+                    pageCount = result
+                } else {
+                    pageCount = nil
+                }
             }
         }
     }
