@@ -251,9 +251,9 @@ class PageViewModel: ObservableObject {
             page.backgroundImage = nil
         }
         let pdfBackground = PDFBackground(pdfName: pdfName, pageIndex: pageIndex)
-        page.pdfBackground = pdfBackground
         page.backgroundType = .pdfPage
         selectedBackgroundType = .pdfPage
+        page.pdfBackground = pdfBackground
         saveChanges()
         // Deregister from in-progress imports if this was freshly imported via the
         // manual-selection flow. finishImport is a no-op for already-finished imports.
