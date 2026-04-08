@@ -32,12 +32,20 @@ struct PDFPickerView: View {
     /// are retained so that cancellation propagates to the actual file work.
     @State private var importTask: Task<Void, Never>? = nil
     @State private var importWorkerTask: Task<String, Error>? = nil
+    /// Filenames imported during this sheet session that have not yet been committed
+    /// (i.e. the user has not selected a page from them).  On sheet dismiss, any
+    /// remaining entries are deleted and deregistered so they don't linger in
+    /// `inProgressImportNames` and block future `deleteUnreferencedPDFs` runs.
+    @State private var pendingImportedFilenames: Set<String> = []
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
             pdfListBody
                 .navigationDestination(for: String.self) { pdfName in
                     PDFPagePickerView(pdfName: pdfName) { pageIndex in
+                        // Remove from pending set — finishImport will be called by
+                        // PageViewModel.setPDFBackground after the page is persisted.
+                        pendingImportedFilenames.remove(pdfName)
                         onSelectPage(pdfName, pageIndex)
                         dismiss()
                     }
@@ -74,6 +82,13 @@ struct PDFPickerView: View {
         .onDisappear {
             importTask?.cancel()
             importWorkerTask?.cancel()
+            // If any PDFs were imported this session but no page was selected, delete
+            // them now and deregister from inProgressImportNames so that a future
+            // deleteUnreferencedPDFs call can reclaim their storage.
+            for filename in pendingImportedFilenames {
+                PDFStorageService.shared.deletePDF(named: filename)
+                PDFStorageService.shared.finishImport(filename: filename)
+            }
         }
     }
 
@@ -155,6 +170,10 @@ struct PDFPickerView: View {
                     importWorkerTask = workerTask
                     let filename = try await workerTask.value
                     importWorkerTask = nil
+                    // Track this as pending: the user hasn't yet selected a page, so
+                    // finishImport hasn't been called.  If they dismiss without choosing
+                    // a page, onDisappear will clean it up.
+                    pendingImportedFilenames.insert(filename)
                     availablePDFs = PDFStorageService.shared.listAvailablePDFs()
                     navigationPath.append(filename)
                 } catch is CancellationError {
