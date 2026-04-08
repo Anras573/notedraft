@@ -89,6 +89,7 @@ struct PDFPickerView: View {
                 PDFStorageService.shared.deletePDF(named: filename)
                 PDFStorageService.shared.finishImport(filename: filename)
             }
+            pendingImportedFilenames.removeAll()
         }
     }
 
