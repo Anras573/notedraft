@@ -122,19 +122,22 @@ class PageViewModel: ObservableObject {
         saveChanges()
     }
     
-    private func saveChanges() {
+    @discardableResult
+    private func saveChanges() -> Bool {
         // Fetch the current notebook from DataStore to avoid stale data
         guard let currentNotebook = dataStore.notebooks.first(where: { $0.id == notebookId }) else {
             print("Warning: Notebook with id \(notebookId) not found in DataStore")
-            return
+            return false
         }
         
         // Find and update the notebook with the modified page
         var updatedNotebook = currentNotebook
-        if let pageIndex = updatedNotebook.pages.firstIndex(where: { $0.id == page.id }) {
-            updatedNotebook.pages[pageIndex] = page
-            dataStore.updateNotebook(updatedNotebook)
+        guard let pageIndex = updatedNotebook.pages.firstIndex(where: { $0.id == page.id }) else {
+            return false
         }
+        updatedNotebook.pages[pageIndex] = page
+        dataStore.updateNotebook(updatedNotebook)
+        return true
     }
     
     // MARK: - Image Management
@@ -246,6 +249,8 @@ class PageViewModel: ObservableObject {
     /// imports (no-op if this PDF was not freshly imported).
     func setPDFBackground(pdfName: String, pageIndex: Int) {
         let oldPDFName = page.pdfBackground?.pdfName
+        let oldPDFBackground = page.pdfBackground
+        let oldBackgroundType = page.backgroundType
 
         // Clean up the old custom background image file, if any.
         if let oldImage = page.backgroundImage {
@@ -257,7 +262,17 @@ class PageViewModel: ObservableObject {
         page.backgroundType = .pdfPage
         selectedBackgroundType = .pdfPage
         page.pdfBackground = pdfBackground
-        saveChanges()
+
+        guard saveChanges() else {
+            // Persistence failed — revert in-memory state so the UI stays consistent
+            // and the newly imported PDF remains registered as in-progress (so a
+            // concurrent cleanup pass cannot delete it before any future save).
+            page.backgroundType = oldBackgroundType
+            selectedBackgroundType = oldBackgroundType
+            page.pdfBackground = oldPDFBackground
+            return
+        }
+
         // Deregister from in-progress imports if this was freshly imported via the
         // manual-selection flow. finishImport is a no-op for already-finished imports.
         PDFStorageService.shared.finishImport(filename: pdfName)
