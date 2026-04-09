@@ -265,8 +265,8 @@ class PageViewModel: ObservableObject {
         // If the page was previously using a different PDF, that old file may now be
         // unreferenced. Schedule a background cleanup pass so it doesn't linger on disk.
         if let oldPDFName, oldPDFName != pdfName {
-            Task.detached(priority: .utility) { [dataStore] in
-                let referencedPDFNames = dataStore.referencedPDFNames()
+            let referencedPDFNames = dataStore.referencedPDFNames()
+            Task.detached(priority: .utility) {
                 PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
             }
         }
