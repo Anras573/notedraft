@@ -287,6 +287,7 @@ private struct PDFListItemView: View {
 /// - Parameters:
 ///   - pdfName: The UUID-based filename of the stored PDF.
 ///   - onSelect: Called with the chosen zero-based page index.
+@MainActor
 struct PDFPagePickerView: View {
     let pdfName: String
     let onSelect: (_ pageIndex: Int) -> Void
@@ -353,6 +354,7 @@ struct PDFPagePickerView: View {
 
 /// A single cell in `PDFPagePickerView`'s grid.
 /// Each cell loads its thumbnail independently so only visible cells trigger rendering.
+@MainActor
 private struct PDFPageThumbnailCell: View {
     let pdfName: String
     let pageIndex: Int

@@ -251,26 +251,35 @@ class PageViewModel: ObservableObject {
         let oldPDFName = page.pdfBackground?.pdfName
         let oldPDFBackground = page.pdfBackground
         let oldBackgroundType = page.backgroundType
+        // Capture the old background image name before any changes so we can
+        // restore it if persistence fails (avoids deleting the file before we
+        // know the save succeeded, preventing irreversible data loss).
+        let oldBackgroundImage = page.backgroundImage
 
-        // Clean up the old custom background image file, if any.
-        if let oldImage = page.backgroundImage {
-            deleteImageFromStorage(oldImage)
-            removeCachedImage(oldImage)
-            page.backgroundImage = nil
-        }
+        // Nil out the in-memory reference now (backgroundImage is only cleaned
+        // from disk after a successful save, below).
+        page.backgroundImage = nil
         let pdfBackground = PDFBackground(pdfName: pdfName, pageIndex: pageIndex)
         page.backgroundType = .pdfPage
         selectedBackgroundType = .pdfPage
         page.pdfBackground = pdfBackground
 
         guard saveChanges() else {
-            // Persistence failed — revert in-memory state so the UI stays consistent
-            // and the newly imported PDF remains registered as in-progress (so a
-            // concurrent cleanup pass cannot delete it before any future save).
+            // Persistence failed — revert all in-memory state, including
+            // backgroundImage, so the UI stays consistent and the old file is
+            // not lost.
             page.backgroundType = oldBackgroundType
             selectedBackgroundType = oldBackgroundType
             page.pdfBackground = oldPDFBackground
+            page.backgroundImage = oldBackgroundImage
             return
+        }
+
+        // Save succeeded — it is now safe to delete the old background image
+        // file from disk and evict it from the in-memory cache.
+        if let oldImage = oldBackgroundImage {
+            deleteImageFromStorage(oldImage)
+            removeCachedImage(oldImage)
         }
 
         // Deregister from in-progress imports if this was freshly imported via the
