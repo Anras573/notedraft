@@ -85,11 +85,19 @@ struct PDFPickerView: View {
             // If any PDFs were imported this session but no page was selected, delete
             // them now and deregister from inProgressImportNames so that a future
             // deleteUnreferencedPDFs call can reclaim their storage.
-            for filename in pendingImportedFilenames {
-                PDFStorageService.shared.deletePDF(named: filename)
-                PDFStorageService.shared.finishImport(filename: filename)
-            }
+            let filenamesToCleanUp = Array(pendingImportedFilenames)
             pendingImportedFilenames.removeAll()
+
+            guard !filenamesToCleanUp.isEmpty else {
+                return
+            }
+
+            Task.detached(priority: .utility) {
+                for filename in filenamesToCleanUp {
+                    PDFStorageService.shared.deletePDF(named: filename)
+                    PDFStorageService.shared.finishImport(filename: filename)
+                }
+            }
         }
     }
 
