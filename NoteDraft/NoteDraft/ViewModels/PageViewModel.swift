@@ -241,9 +241,12 @@ class PageViewModel: ObservableObject {
 
     /// Sets the specified PDF page as the background for the current page.
     /// Also clears and deletes any previous custom background image so storage is
-    /// not left with an orphaned file. Persists the change and deregisters the PDF
-    /// from in-progress imports (no-op if this PDF was not freshly imported).
+    /// not left with an orphaned file. Persists the change, schedules cleanup of
+    /// any now-unreferenced PDF files, and deregisters the PDF from in-progress
+    /// imports (no-op if this PDF was not freshly imported).
     func setPDFBackground(pdfName: String, pageIndex: Int) {
+        let oldPDFName = page.pdfBackground?.pdfName
+
         // Clean up the old custom background image file, if any.
         if let oldImage = page.backgroundImage {
             deleteImageFromStorage(oldImage)
@@ -258,6 +261,15 @@ class PageViewModel: ObservableObject {
         // Deregister from in-progress imports if this was freshly imported via the
         // manual-selection flow. finishImport is a no-op for already-finished imports.
         PDFStorageService.shared.finishImport(filename: pdfName)
+
+        // If the page was previously using a different PDF, that old file may now be
+        // unreferenced. Schedule a background cleanup pass so it doesn't linger on disk.
+        if let oldPDFName, oldPDFName != pdfName {
+            let referencedPDFNames = dataStore.referencedPDFNames()
+            Task.detached(priority: .utility) {
+                PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
+            }
+        }
     }
 
     /// Loads and returns the rendered UIImage for the specified PDF background page.

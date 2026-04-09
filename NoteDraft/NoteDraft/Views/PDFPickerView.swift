@@ -169,8 +169,17 @@ struct PDFPickerView: View {
                         return filename
                     }
                     importWorkerTask = workerTask
+                    defer { importWorkerTask = nil }
                     let filename = try await workerTask.value
-                    importWorkerTask = nil
+                    // The sheet can be dismissed in the window between the worker finishing
+                    // and this task updating state/navigation.  Check cancellation here so
+                    // that a successfully imported PDF is cleaned up rather than left on
+                    // disk and permanently registered as in-progress.
+                    if Task.isCancelled {
+                        PDFStorageService.shared.deletePDF(named: filename)
+                        PDFStorageService.shared.finishImport(filename: filename)
+                        throw CancellationError()
+                    }
                     // Track this as pending: the user hasn't yet selected a page, so
                     // finishImport hasn't been called.  If they dismiss without choosing
                     // a page, onDisappear will clean it up.
@@ -178,7 +187,8 @@ struct PDFPickerView: View {
                     availablePDFs = PDFStorageService.shared.listAvailablePDFs()
                     navigationPath.append(filename)
                 } catch is CancellationError {
-                    // Sheet was dismissed mid-import; file already cleaned up in workerTask.
+                    // Sheet was dismissed mid-import; file was already cleaned up either
+                    // in workerTask or immediately after awaiting its result.
                 } catch {
                     importError = error
                     showImportError = true
