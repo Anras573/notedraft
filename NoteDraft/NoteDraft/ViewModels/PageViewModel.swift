@@ -22,6 +22,7 @@ enum ImageStorageError: LocalizedError {
     }
 }
 
+@MainActor
 class PageViewModel: ObservableObject {
     @Published var page: Page
     @Published var drawing: PKDrawing
