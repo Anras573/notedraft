@@ -151,8 +151,11 @@ struct PageView: View {
             if let pdfName = viewModel.page.pdfBackground?.pdfName {
                 NavigationStack {
                     PDFPagePickerView(pdfName: pdfName) { pageIndex in
-                        setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
-                        showPDFPagePicker = false
+                        // Only dismiss if the save succeeded; keep the picker
+                        // open if persistence fails so the user can retry.
+                        if setPDFBackground(pdfName: pdfName, pageIndex: pageIndex) {
+                            showPDFPagePicker = false
+                        }
                     }
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -168,11 +171,17 @@ struct PageView: View {
         }
     }
 
-    /// Sets the PDF background via the view model and dismisses both picker sheets.
-    private func setPDFBackground(pdfName: String, pageIndex: Int) {
-        viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+    /// Sets the PDF background via the view model and dismisses both picker sheets on success.
+    /// - Returns: `true` if the change was persisted successfully, `false` otherwise
+    ///   (sheets remain open so the user can retry or cancel).
+    @discardableResult
+    private func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
+        guard viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex) else {
+            return false
+        }
         showPDFPicker = false
         showPDFPagePicker = false
+        return true
     }
     
     /// Helper method to handle image loading from PhotosPicker

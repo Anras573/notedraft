@@ -247,7 +247,10 @@ class PageViewModel: ObservableObject {
     /// not left with an orphaned file. Persists the change, schedules cleanup of
     /// any now-unreferenced PDF files, and deregisters the PDF from in-progress
     /// imports (no-op if this PDF was not freshly imported).
-    func setPDFBackground(pdfName: String, pageIndex: Int) {
+    /// - Returns: `true` if the change was persisted successfully, `false` if the
+    ///   notebook or page could not be found (all in-memory state is reverted).
+    @discardableResult
+    func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
         let oldPDFName = page.pdfBackground?.pdfName
         let oldPDFBackground = page.pdfBackground
         let oldBackgroundType = page.backgroundType
@@ -272,7 +275,7 @@ class PageViewModel: ObservableObject {
             selectedBackgroundType = oldBackgroundType
             page.pdfBackground = oldPDFBackground
             page.backgroundImage = oldBackgroundImage
-            return
+            return false
         }
 
         // Save succeeded — it is now safe to delete the old background image
@@ -294,6 +297,7 @@ class PageViewModel: ObservableObject {
                 PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
             }
         }
+        return true
     }
 
     /// Loads and returns the rendered UIImage for the specified PDF background page.

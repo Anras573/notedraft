@@ -16,9 +16,11 @@ import UniformTypeIdentifiers
 /// 2. Pick a specific page from that PDF using a thumbnail grid.
 ///
 /// The `onSelectPage` callback is invoked with the chosen `pdfName` and
-/// zero-based `pageIndex` before the sheet is dismissed.
+/// zero-based `pageIndex`. It must return `true` on success (the sheet then
+/// dismisses and removes the file from the pending-cleanup set) or `false` if
+/// persistence fails (the sheet stays open so the user can retry or cancel).
 struct PDFPickerView: View {
-    let onSelectPage: (_ pdfName: String, _ pageIndex: Int) -> Void
+    let onSelectPage: (_ pdfName: String, _ pageIndex: Int) -> Bool
 
     @Environment(\.dismiss) private var dismiss
     @State private var availablePDFs: [String] = []
@@ -27,9 +29,10 @@ struct PDFPickerView: View {
     @State private var importError: Error? = nil
     @State private var showImportError = false
     @State private var isImporting = false
-    /// Held so the in-flight import can be cancelled when the sheet is dismissed.
-    /// Both the outer @MainActor wrapper task and the inner detached file-copy task
-    /// are retained so that cancellation propagates to the actual file work.
+    /// Held so in-flight import tasks can be cancelled when the sheet is dismissed.
+    /// Cancellation is best-effort: the synchronous FileManager.copyItem inside the
+    /// worker task cannot be interrupted mid-copy, but the cancellation flag is
+    /// checked after the copy completes and triggers file cleanup before propagating.
     @State private var importTask: Task<Void, Never>? = nil
     @State private var importWorkerTask: Task<String, Error>? = nil
     /// Filenames imported during this sheet session that have not yet been committed
@@ -43,11 +46,15 @@ struct PDFPickerView: View {
             pdfListBody
                 .navigationDestination(for: String.self) { pdfName in
                     PDFPagePickerView(pdfName: pdfName) { pageIndex in
-                        // Remove from pending set — finishImport will be called by
-                        // PageViewModel.setPDFBackground after the page is persisted.
-                        pendingImportedFilenames.remove(pdfName)
-                        onSelectPage(pdfName, pageIndex)
-                        dismiss()
+                        // Only remove from the pending set and dismiss if the save
+                        // succeeded. If save failed, the file stays in
+                        // pendingImportedFilenames so onDisappear can clean it up
+                        // if the user later cancels, and the sheet stays open so
+                        // the user can try a different page or cancel themselves.
+                        if onSelectPage(pdfName, pageIndex) {
+                            pendingImportedFilenames.remove(pdfName)
+                            dismiss()
+                        }
                     }
                 }
         }
@@ -158,11 +165,13 @@ struct PDFPickerView: View {
                 isImporting = true
                 defer { isImporting = false }
                 do {
-                    // importPDF(from:) is a synchronous, blocking operation (file copy + PDF
-                    // document validation). A separate detached task moves it off the main
-                    // actor so the UI remains responsive. We hold a reference to the detached
-                    // task so that cancellation (e.g. sheet dismissed) propagates to the
-                    // actual file work, not just to the awaiting side.
+                    // importPDF(from:) is a synchronous, blocking operation (file copy +
+                    // PDF document validation). A separate detached task moves it off the
+                    // main actor so the UI remains responsive.  Note: because the work is
+                    // a synchronous FileManager.copyItem, task cancellation cannot interrupt
+                    // the copy mid-flight — cancellation is only observed after the copy
+                    // finishes (best-effort cleanup: delete the file and deregister from
+                    // inProgressImportNames before rethrowing CancellationError).
                     let workerTask = Task.detached(priority: .userInitiated) { () throws -> String in
                         let filename = try PDFStorageService.shared.importPDF(from: url)
                         // importPDF succeeded (file is now on disk and registered as
