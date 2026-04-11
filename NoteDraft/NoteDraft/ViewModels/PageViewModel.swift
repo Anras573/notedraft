@@ -49,15 +49,17 @@ class PageViewModel: ObservableObject {
         // Initialize with empty drawing - load lazily when needed
         self.drawing = PKDrawing()
         
-        // Register for memory warnings to clear image cache
-        // Use background queue to avoid blocking main thread during cache clearing
-        // Store the observer token for proper cleanup in deinit
+        // Register for memory warnings to clear image cache.
+        // The notification can arrive on any thread, so hop to the main actor
+        // before calling clearImageCache() to satisfy @MainActor isolation.
         memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
-            queue: OperationQueue()
+            queue: nil
         ) { [weak self] _ in
-            self?.clearImageCache()
+            Task { @MainActor [weak self] in
+                self?.clearImageCache()
+            }
         }
     }
     
