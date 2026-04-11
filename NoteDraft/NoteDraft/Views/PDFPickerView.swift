@@ -370,6 +370,7 @@ private struct PDFPageThumbnailCell: View {
     let onSelect: (_ pageIndex: Int) -> Void
 
     @State private var thumbnail: UIImage? = nil
+    @State private var isLoading: Bool = true
 
     /// Stable, Equatable task identity — avoids allocating a new `String` on every layout pass.
     private struct RenderID: Equatable {
@@ -387,10 +388,18 @@ private struct PDFPageThumbnailCell: View {
                         Image(uiImage: image)
                             .resizable()
                             .scaledToFit()
-                    } else {
+                    } else if isLoading {
                         Color(UIColor.secondarySystemBackground)
                             .aspectRatio(CGSize(width: 3, height: 4), contentMode: .fit)
                             .overlay(ProgressView())
+                    } else {
+                        // Render returned nil (missing/corrupt PDF or invalid index).
+                        Color(UIColor.secondarySystemBackground)
+                            .aspectRatio(CGSize(width: 3, height: 4), contentMode: .fit)
+                            .overlay(
+                                Image(systemName: "exclamationmark.triangle")
+                                    .foregroundColor(.secondary)
+                            )
                     }
                 }
                 .border(Color.secondary, width: 0.5)
@@ -401,6 +410,7 @@ private struct PDFPageThumbnailCell: View {
         }
         .buttonStyle(.plain)
         .task(id: RenderID(pdfName: pdfName, pageIndex: pageIndex)) {
+            isLoading = true
             // Call renderPage directly so that the .task modifier's built-in cancellation
             // (fired when the ID changes or the cell scrolls out of the LazyVGrid) propagates
             // into renderPage without needing a separate unstructured Task.
@@ -411,6 +421,7 @@ private struct PDFPageThumbnailCell: View {
             )
             guard !Task.isCancelled else { return }
             thumbnail = image
+            isLoading = false
         }
     }
 }
