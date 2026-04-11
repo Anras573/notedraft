@@ -24,6 +24,8 @@ struct PageView: View {
     @State private var showPDFPicker = false
     /// Shown when the "Select PDF Page" toolbar button is tapped; picks a new page from the current PDF.
     @State private var showPDFPagePicker = false
+    /// Shown when saving the PDF background selection fails.
+    @State private var showPDFSaveError = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -142,6 +144,11 @@ struct PageView: View {
         } message: {
             Text(imageLoadErrorMessage)
         }
+        .alert("Unable to Save Background", isPresented: $showPDFSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The selected PDF page could not be saved. Please try again.")
+        }
         // PDF picker sheet: browse/import PDFs then pick a page
         .sheet(isPresented: $showPDFPicker) {
             PDFPickerView(onSelectPage: setPDFBackground)
@@ -177,6 +184,7 @@ struct PageView: View {
     @discardableResult
     private func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
         guard viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex) else {
+            showPDFSaveError = true
             return false
         }
         showPDFPicker = false

@@ -370,9 +370,6 @@ private struct PDFPageThumbnailCell: View {
     let onSelect: (_ pageIndex: Int) -> Void
 
     @State private var thumbnail: UIImage? = nil
-    /// Held so that `.onDisappear` can cancel in-flight rendering work when the cell
-    /// scrolls out of the `LazyVGrid`'s rendering window.
-    @State private var renderTask: Task<UIImage?, Never>? = nil
 
     /// Stable, Equatable task identity — avoids allocating a new `String` on every layout pass.
     private struct RenderID: Equatable {
@@ -404,20 +401,16 @@ private struct PDFPageThumbnailCell: View {
         }
         .buttonStyle(.plain)
         .task(id: RenderID(pdfName: pdfName, pageIndex: pageIndex)) {
-            renderTask?.cancel()
-            let task = Task(priority: .userInitiated) {
-                await PDFStorageService.shared.renderPage(
-                    index: pageIndex,
-                    of: pdfName,
-                    at: CGSize(width: 300, height: 400)
-                )
-            }
-            renderTask = task
-            thumbnail = await task.value
-        }
-        .onDisappear {
-            renderTask?.cancel()
-            renderTask = nil
+            // Call renderPage directly so that the .task modifier's built-in cancellation
+            // (fired when the ID changes or the cell scrolls out of the LazyVGrid) propagates
+            // into renderPage without needing a separate unstructured Task.
+            let image = await PDFStorageService.shared.renderPage(
+                index: pageIndex,
+                of: pdfName,
+                at: CGSize(width: 300, height: 400)
+            )
+            guard !Task.isCancelled else { return }
+            thumbnail = image
         }
     }
 }
