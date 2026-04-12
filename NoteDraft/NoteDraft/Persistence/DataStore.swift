@@ -34,14 +34,17 @@ class DataStore: ObservableObject {
     
     // MARK: - Public Methods
     
-    func saveNotebooks() {
+    @discardableResult
+    func saveNotebooks() -> Bool {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             let data = try encoder.encode(notebooks)
             try data.write(to: notebooksFileURL, options: .atomic)
+            return true
         } catch {
             print("Error saving notebooks: \(error.localizedDescription)")
+            return false
         }
     }
     
@@ -67,12 +70,14 @@ class DataStore: ObservableObject {
         saveNotebooks()
     }
     
-    func updateNotebook(_ notebook: Notebook) {
+    @discardableResult
+    func updateNotebook(_ notebook: Notebook) -> Bool {
         if let index = notebooks.firstIndex(where: { $0.id == notebook.id }) {
             notebooks[index] = notebook
-            saveNotebooks()
+            return saveNotebooks()
         } else {
             print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
+            return false
         }
     }
     

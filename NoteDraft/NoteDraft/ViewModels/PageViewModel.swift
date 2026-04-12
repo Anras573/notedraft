@@ -139,8 +139,7 @@ class PageViewModel: ObservableObject {
             return false
         }
         updatedNotebook.pages[pageIndex] = page
-        dataStore.updateNotebook(updatedNotebook)
-        return true
+        return dataStore.updateNotebook(updatedNotebook)
     }
     
     // MARK: - Image Management
