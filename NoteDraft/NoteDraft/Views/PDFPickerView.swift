@@ -272,11 +272,19 @@ private struct PDFListItemView: View {
                     let image = await PDFStorageService.shared.renderPage(
                         index: 0, of: pdfName, at: CGSize(width: 88, height: 120)
                     )
-                    await MainActor.run { thumbnail = image }
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        thumbnail = image
+                    }
                 }
                 group.addTask {
                     let count = PDFStorageService.shared.pageCount(for: pdfName)
-                    await MainActor.run { pageCount = count }
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        guard !Task.isCancelled else { return }
+                        pageCount = count
+                    }
                 }
             }
         }
