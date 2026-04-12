@@ -250,7 +250,9 @@ class PageViewModel: ObservableObject {
     /// any now-unreferenced PDF files, and deregisters the PDF from in-progress
     /// imports (no-op if this PDF was not freshly imported).
     /// - Returns: `true` if the change was persisted successfully, `false` if the
-    ///   notebook or page could not be found (all in-memory state is reverted).
+    ///   notebook or page could not be found or if persisting the update failed
+    ///   (for example, due to an encoding or disk write error). On failure, all
+    ///   in-memory state is reverted so the UI can roll back and keep the sheet open.
     @discardableResult
     func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
         let oldPDFName = page.pdfBackground?.pdfName
