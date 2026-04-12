@@ -79,10 +79,11 @@ struct PageView: View {
                 }
             }
             
-            // PDF page selector (shown only when a PDF page background is active)
+            // PDF page selector (shown whenever PDF page background mode is active;
+            // the sheet decides whether to show page selection or fall back to PDF picking
+            // when pdfBackground is nil, e.g. after a corrupted save)
             ToolbarItem(placement: .topBarLeading) {
-                if viewModel.selectedBackgroundType == .pdfPage,
-                   viewModel.page.pdfBackground?.pdfName != nil {
+                if viewModel.selectedBackgroundType == .pdfPage {
                     Button {
                         showPDFPagePicker = true
                     } label: {

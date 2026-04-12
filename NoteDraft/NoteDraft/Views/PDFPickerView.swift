@@ -424,6 +424,7 @@ private struct PDFPageThumbnailCell: View {
         .buttonStyle(.plain)
         .task(id: RenderID(pdfName: pdfName, pageIndex: pageIndex)) {
             isLoading = true
+            thumbnail = nil
             // Call renderPage directly so that the .task modifier's built-in cancellation
             // (fired when the ID changes or the cell scrolls out of the LazyVGrid) propagates
             // into renderPage without needing a separate unstructured Task.
