@@ -34,14 +34,26 @@ class DataStore: ObservableObject {
     
     // MARK: - Public Methods
     
-    func saveNotebooks() {
+    @discardableResult
+    func saveNotebooks() -> Bool {
+        writeNotebooks(notebooks)
+    }
+
+    /// Serializes `updatedNotebooks` to disk without touching `self.notebooks`.
+    /// Called by both `saveNotebooks()` and `updateNotebook(_:)`. The latter
+    /// uses it so that a failed write never publishes transient state to SwiftUI
+    /// observers — `notebooks` is only assigned after the write succeeds.
+    @discardableResult
+    private func writeNotebooks(_ updatedNotebooks: [Notebook]) -> Bool {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(notebooks)
+            let data = try encoder.encode(updatedNotebooks)
             try data.write(to: notebooksFileURL, options: .atomic)
+            return true
         } catch {
             print("Error saving notebooks: \(error.localizedDescription)")
+            return false
         }
     }
     
@@ -63,22 +75,31 @@ class DataStore: ObservableObject {
     }
     
     func addNotebook(_ notebook: Notebook) {
-        notebooks.append(notebook)
-        saveNotebooks()
+        let candidate = notebooks + [notebook]
+        guard writeNotebooks(candidate) else { return }
+        notebooks = candidate
     }
     
-    func updateNotebook(_ notebook: Notebook) {
-        if let index = notebooks.firstIndex(where: { $0.id == notebook.id }) {
-            notebooks[index] = notebook
-            saveNotebooks()
-        } else {
+    func updateNotebook(_ notebook: Notebook) -> Bool {
+        guard let index = notebooks.firstIndex(where: { $0.id == notebook.id }) else {
             print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
+            return false
         }
+        // Build the candidate array and write it to disk BEFORE updating the @Published
+        // array. This ensures that if the write fails, SwiftUI observers never see a
+        // notebook state that wasn't persisted — avoiding UI flicker and a spurious
+        // second update that would occur if we mutated first and then rolled back.
+        var candidate = notebooks
+        candidate[index] = notebook
+        guard writeNotebooks(candidate) else { return false }
+        notebooks = candidate
+        return true
     }
     
     func deleteNotebook(_ notebook: Notebook) {
-        notebooks.removeAll { $0.id == notebook.id }
-        saveNotebooks()
+        let candidate = notebooks.filter { $0.id != notebook.id }
+        guard writeNotebooks(candidate) else { return }
+        notebooks = candidate
     }
     
     /// Returns the set of PDF filenames that are still referenced by at least one page

@@ -22,6 +22,7 @@ enum ImageStorageError: LocalizedError {
     }
 }
 
+@MainActor
 class PageViewModel: ObservableObject {
     @Published var page: Page
     @Published var drawing: PKDrawing
@@ -48,15 +49,17 @@ class PageViewModel: ObservableObject {
         // Initialize with empty drawing - load lazily when needed
         self.drawing = PKDrawing()
         
-        // Register for memory warnings to clear image cache
-        // Use background queue to avoid blocking main thread during cache clearing
-        // Store the observer token for proper cleanup in deinit
+        // Register for memory warnings to clear image cache.
+        // The notification can arrive on any thread, so hop to the main actor
+        // before calling clearImageCache() to satisfy @MainActor isolation.
         memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
-            queue: OperationQueue()
+            queue: nil
         ) { [weak self] _ in
-            self?.clearImageCache()
+            Task { @MainActor [weak self] in
+                self?.clearImageCache()
+            }
         }
     }
     
@@ -87,9 +90,36 @@ class PageViewModel: ObservableObject {
     }
     
     func setBackgroundType(_ type: BackgroundType) {
+        // Capture previous state before any mutation so we can revert on save failure.
+        let previousBackgroundType = page.backgroundType
+        let previousSelectedBackgroundType = selectedBackgroundType
+        let previousPDFBackground = page.pdfBackground
+
+        // Capture whether the page had a PDF background before the backgroundType
+        // didSet clears it, so we can schedule orphan-PDF cleanup after a successful save.
+        let hadPDFBackground = page.backgroundType == .pdfPage && page.pdfBackground?.pdfName != nil
         selectedBackgroundType = type
         page.backgroundType = type
-        saveChanges()
+        if saveChanges() {
+            // If the page previously had a PDF background, that file may now be
+            // unreferenced. Schedule a background pass to delete it if so.
+            if hadPDFBackground {
+                let referencedPDFNames = dataStore.referencedPDFNames()
+                Task.detached(priority: .utility) {
+                    PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
+                }
+            }
+        } else {
+            // Revert in-memory state to match what's on disk.
+            // Restore backgroundType first. Page.backgroundType.didSet only clears
+            // pdfBackground when the new type is not .pdfPage, so:
+            //  - If previousBackgroundType == .pdfPage: didSet won't clear pdfBackground.
+            //  - If previousBackgroundType != .pdfPage: previousPDFBackground is nil anyway.
+            // In both cases it is safe to restore pdfBackground immediately after.
+            page.backgroundType = previousBackgroundType
+            page.pdfBackground = previousPDFBackground
+            selectedBackgroundType = previousSelectedBackgroundType
+        }
     }
     
     /// Sets a custom background image for the page
@@ -99,18 +129,36 @@ class PageViewModel: ObservableObject {
         guard let imageName = saveImageToStorage(image) else {
             throw ImageStorageError.saveFailed("Failed to save background image to storage")
         }
-        
-        // Delete old background image after successfully saving the new one
-        if let oldBackgroundImage = page.backgroundImage {
-            deleteImageFromStorage(oldBackgroundImage)
-            removeCachedImage(oldBackgroundImage)
-        }
-        
+
+        // Capture previous state before any mutation so we can revert on save failure.
+        let previousBackgroundImage = page.backgroundImage
+        let previousBackgroundType = page.backgroundType
+        let previousSelectedBackgroundType = selectedBackgroundType
+        let previousPDFBackground = page.pdfBackground
+
         // Update page with new background image
         page.backgroundImage = imageName
         page.backgroundType = .customImage
         selectedBackgroundType = .customImage
-        saveChanges()
+
+        if saveChanges() {
+            // Only delete the old file after the write is confirmed to avoid data loss
+            // if the page is re-saved later and the old file is already gone.
+            if let oldBackgroundImage = previousBackgroundImage {
+                deleteImageFromStorage(oldBackgroundImage)
+                removeCachedImage(oldBackgroundImage)
+            }
+        } else {
+            // Revert in-memory state. Restore backgroundType first (same reasoning
+            // as setBackgroundType: Page.backgroundType.didSet only clears pdfBackground
+            // when the new type is not .pdfPage, so restoring it first is always safe).
+            page.backgroundType = previousBackgroundType
+            page.pdfBackground = previousPDFBackground
+            page.backgroundImage = previousBackgroundImage
+            selectedBackgroundType = previousSelectedBackgroundType
+            // The newly saved image file is now orphaned; delete it.
+            deleteImageFromStorage(imageName)
+        }
     }
     
     func saveDrawing() {
@@ -122,19 +170,21 @@ class PageViewModel: ObservableObject {
         saveChanges()
     }
     
-    private func saveChanges() {
+    @discardableResult
+    private func saveChanges() -> Bool {
         // Fetch the current notebook from DataStore to avoid stale data
         guard let currentNotebook = dataStore.notebooks.first(where: { $0.id == notebookId }) else {
             print("Warning: Notebook with id \(notebookId) not found in DataStore")
-            return
+            return false
         }
         
         // Find and update the notebook with the modified page
         var updatedNotebook = currentNotebook
-        if let pageIndex = updatedNotebook.pages.firstIndex(where: { $0.id == page.id }) {
-            updatedNotebook.pages[pageIndex] = page
-            dataStore.updateNotebook(updatedNotebook)
+        guard let pageIndex = updatedNotebook.pages.firstIndex(where: { $0.id == page.id }) else {
+            return false
         }
+        updatedNotebook.pages[pageIndex] = page
+        return dataStore.updateNotebook(updatedNotebook)
     }
     
     // MARK: - Image Management
@@ -238,6 +288,67 @@ class PageViewModel: ObservableObject {
     }
     
     // MARK: - PDF Background
+
+    /// Sets the specified PDF page as the background for the current page.
+    /// Also clears and deletes any previous custom background image so storage is
+    /// not left with an orphaned file. Persists the change, schedules cleanup of
+    /// any now-unreferenced PDF files, and deregisters the PDF from in-progress
+    /// imports (no-op if this PDF was not freshly imported).
+    /// - Returns: `true` if the change was persisted successfully, `false` if the
+    ///   notebook or page could not be found or if persisting the update failed
+    ///   (for example, due to an encoding or disk write error). On failure, all
+    ///   in-memory state is reverted so the UI can roll back and keep the sheet open.
+    @discardableResult
+    func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
+        let oldPDFName = page.pdfBackground?.pdfName
+        let oldPDFBackground = page.pdfBackground
+        let oldBackgroundType = page.backgroundType
+        let oldSelectedBackgroundType = selectedBackgroundType
+        // Capture the old background image name before any changes so we can
+        // restore it if persistence fails (avoids deleting the file before we
+        // know the save succeeded, preventing irreversible data loss).
+        let oldBackgroundImage = page.backgroundImage
+
+        // Nil out the in-memory reference now (backgroundImage is only cleaned
+        // from disk after a successful save, below).
+        page.backgroundImage = nil
+        let pdfBackground = PDFBackground(pdfName: pdfName, pageIndex: pageIndex)
+        page.backgroundType = .pdfPage
+        selectedBackgroundType = .pdfPage
+        page.pdfBackground = pdfBackground
+
+        guard saveChanges() else {
+            // Persistence failed — revert all in-memory state, including
+            // backgroundImage, so the UI stays consistent and the old file is
+            // not lost.
+            page.backgroundType = oldBackgroundType
+            selectedBackgroundType = oldSelectedBackgroundType
+            page.pdfBackground = oldPDFBackground
+            page.backgroundImage = oldBackgroundImage
+            return false
+        }
+
+        // Save succeeded — it is now safe to delete the old background image
+        // file from disk and evict it from the in-memory cache.
+        if let oldImage = oldBackgroundImage {
+            deleteImageFromStorage(oldImage)
+            removeCachedImage(oldImage)
+        }
+
+        // Deregister from in-progress imports if this was freshly imported via the
+        // manual-selection flow. finishImport is a no-op for already-finished imports.
+        PDFStorageService.shared.finishImport(filename: pdfName)
+
+        // If the page was previously using a different PDF, that old file may now be
+        // unreferenced. Schedule a background cleanup pass so it doesn't linger on disk.
+        if let oldPDFName, oldPDFName != pdfName {
+            let referencedPDFNames = dataStore.referencedPDFNames()
+            Task.detached(priority: .utility) {
+                PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
+            }
+        }
+        return true
+    }
 
     /// Loads and returns the rendered UIImage for the specified PDF background page.
     /// Rendering is performed off the main thread via PDFStorageService (child task on the

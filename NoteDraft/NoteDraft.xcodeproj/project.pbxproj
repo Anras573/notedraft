@@ -26,6 +26,8 @@
 		BF0E0AB1D8974278B2BB76E9 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0EC8F81142C478EA8D9B17B /* PageImage.swift */; };
 		C1C1C1C1C1C1C1C1C1C1C1C1 /* PDFBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2C2C2C2C2C2C2C2C2C2C2C2 /* PDFBackground.swift */; };
 		C3C3C3C3C3C3C3C3C3C3C3C3 /* PDFStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4C4C4C4C4C4C4C4C4C4C4C4 /* PDFStorageService.swift */; };
+		C5A5A5A5A5A5A5A5A5A5A5A5 /* PDFPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5B5B5B5B5B5B5B5B5B5B5B5 /* PDFPickerView.swift */; };
+		C6A6A6A6A6A6A6A6A6A6A6A6 /* PDFPagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6B6B6B6B6B6B6B6B6B6B6B6 /* PDFPagePickerView.swift */; };
 		CEF33E66DAEB4867B753BD30 /* NotebookListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4037E1BC556B477BB2187FEB /* NotebookListView.swift */; };
 		DA2A2A2A2A2A2A2A2A2A2A2A2 /* BackgroundTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D2D2D2D2D2D2D2D2D2D2D2 /* BackgroundTypeTests.swift */; };
 		DA3A3A3A3A3A3A3A3A3A3A3A3 /* NotebookTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D3D3D3D3D3D3D3D3D3D3D3 /* NotebookTests.swift */; };
@@ -65,6 +67,8 @@
 		B9B9B9B9B9B9B9B9B9B9B9B9 /* BackgroundType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundType.swift; sourceTree = "<group>"; };
 		C2C2C2C2C2C2C2C2C2C2C2C2 /* PDFBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFBackground.swift; sourceTree = "<group>"; };
 		C4C4C4C4C4C4C4C4C4C4C4C4 /* PDFStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFStorageService.swift; sourceTree = "<group>"; };
+		C5B5B5B5B5B5B5B5B5B5B5B5 /* PDFPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPickerView.swift; sourceTree = "<group>"; };
+		C6B6B6B6B6B6B6B6B6B6B6B6 /* PDFPagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPagePickerView.swift; sourceTree = "<group>"; };
 		CE6F4D5376A84B59A88E530A /* AsyncContentImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncContentImage.swift; sourceTree = "<group>"; };
 		D0D0D0D0D0D0D0D0D0D0D0D0 /* NoteDraftTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NoteDraftTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1D1D1D1D1D1D1D1D1D1D1D1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -160,6 +164,8 @@
 				B5B5B5B5B5B5B5B5B5B5B5B5 /* CanvasView.swift */,
 				B6B6B6B6B6B6B6B6B6B6B6B6 /* ContinuousPageView.swift */,
 				B8B8B8B8B8B8B8B8B8B8B8B8 /* BackgroundView.swift */,
+				C5B5B5B5B5B5B5B5B5B5B5B5 /* PDFPickerView.swift */,
+				C6B6B6B6B6B6B6B6B6B6B6B6 /* PDFPagePickerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -319,6 +325,8 @@
 				B9A9A9A9A9A9A9A9A9A9A9A9 /* BackgroundType.swift in Sources */,
 				C1C1C1C1C1C1C1C1C1C1C1C1 /* PDFBackground.swift in Sources */,
 				C3C3C3C3C3C3C3C3C3C3C3C3 /* PDFStorageService.swift in Sources */,
+				C5A5A5A5A5A5A5A5A5A5A5A5 /* PDFPickerView.swift in Sources */,
+				C6A6A6A6A6A6A6A6A6A6A6A6 /* PDFPagePickerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

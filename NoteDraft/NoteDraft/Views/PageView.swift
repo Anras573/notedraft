@@ -20,6 +20,12 @@ struct PageView: View {
     @State private var backgroundImageLoadTask: Task<Void, Never>?
     @State private var isLoadingImage = false
     @State private var isLoadingBackgroundImage = false
+    /// Shown when the user picks "PDF Page" from the background menu; allows choosing a PDF then a page.
+    @State private var showPDFPicker = false
+    /// Shown when the "Select PDF Page" toolbar button is tapped; picks a new page from the current PDF.
+    @State private var showPDFPagePicker = false
+    /// Shown when saving the PDF background selection fails.
+    @State private var showPDFSaveError = false
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -44,7 +50,11 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.selectableCases) { type in
                         Button {
-                            viewModel.setBackgroundType(type)
+                            if type == .pdfPage {
+                                showPDFPicker = true
+                            } else {
+                                viewModel.setBackgroundType(type)
+                            }
                         } label: {
                             HStack {
                                 Text(type.displayName)
@@ -66,6 +76,20 @@ struct PageView: View {
                         Image(systemName: "photo.fill.on.rectangle.fill")
                     }
                     .accessibilityLabel("Select background image")
+                }
+            }
+            
+            // PDF page selector (shown whenever PDF page background mode is active;
+            // the sheet decides whether to show page selection or fall back to PDF picking
+            // when pdfBackground is nil, e.g. after a corrupted save)
+            ToolbarItem(placement: .topBarLeading) {
+                if viewModel.selectedBackgroundType == .pdfPage {
+                    Button {
+                        showPDFPagePicker = true
+                    } label: {
+                        Image(systemName: "doc.text.magnifyingglass")
+                    }
+                    .accessibilityLabel("Select PDF page")
                 }
             }
             
@@ -121,6 +145,52 @@ struct PageView: View {
         } message: {
             Text(imageLoadErrorMessage)
         }
+        .alert("Unable to Save Background", isPresented: $showPDFSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("The selected PDF page could not be saved. Please try again.")
+        }
+        // PDF picker sheet: browse/import PDFs then pick a page
+        .sheet(isPresented: $showPDFPicker) {
+            PDFPickerView(onSelectPage: setPDFBackground)
+        }
+        // PDF page picker sheet: pick a different page from the current PDF
+        .sheet(isPresented: $showPDFPagePicker) {
+            if let pdfName = viewModel.page.pdfBackground?.pdfName {
+                NavigationStack {
+                    PDFPagePickerView(pdfName: pdfName) { pageIndex in
+                        // Only dismiss if the save succeeded; keep the picker
+                        // open if persistence fails so the user can retry.
+                        if setPDFBackground(pdfName: pdfName, pageIndex: pageIndex) {
+                            showPDFPagePicker = false
+                        }
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { showPDFPagePicker = false }
+                        }
+                    }
+                }
+            } else {
+                // Fallback: pdfBackground is nil (e.g. corrupted data).
+                // Let the user choose a new PDF instead.
+                PDFPickerView(onSelectPage: setPDFBackground)
+            }
+        }
+    }
+
+    /// Sets the PDF background via the view model and dismisses both picker sheets on success.
+    /// - Returns: `true` if the change was persisted successfully, `false` otherwise
+    ///   (sheets remain open so the user can retry or cancel).
+    @discardableResult
+    private func setPDFBackground(pdfName: String, pageIndex: Int) -> Bool {
+        guard viewModel.setPDFBackground(pdfName: pdfName, pageIndex: pageIndex) else {
+            showPDFSaveError = true
+            return false
+        }
+        showPDFPicker = false
+        showPDFPagePicker = false
+        return true
     }
     
     /// Helper method to handle image loading from PhotosPicker
