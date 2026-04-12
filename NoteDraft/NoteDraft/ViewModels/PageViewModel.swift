@@ -90,9 +90,21 @@ class PageViewModel: ObservableObject {
     }
     
     func setBackgroundType(_ type: BackgroundType) {
+        // Capture whether the page had a PDF background before the backgroundType
+        // didSet clears it, so we can schedule orphan-PDF cleanup after a successful save.
+        let hadPDFBackground = page.backgroundType == .pdfPage && page.pdfBackground?.pdfName != nil
         selectedBackgroundType = type
         page.backgroundType = type
-        saveChanges()
+        if saveChanges() {
+            // If the page previously had a PDF background, that file may now be
+            // unreferenced. Schedule a background pass to delete it if so.
+            if hadPDFBackground {
+                let referencedPDFNames = dataStore.referencedPDFNames()
+                Task.detached(priority: .utility) {
+                    PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
+                }
+            }
+        }
     }
     
     /// Sets a custom background image for the page

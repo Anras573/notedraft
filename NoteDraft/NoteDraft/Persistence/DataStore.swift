@@ -73,8 +73,16 @@ class DataStore: ObservableObject {
     @discardableResult
     func updateNotebook(_ notebook: Notebook) -> Bool {
         if let index = notebooks.firstIndex(where: { $0.id == notebook.id }) {
+            // Update in memory, but restore the previous value if the disk write
+            // fails so the in-memory state stays consistent with what is persisted.
+            let previous = notebooks[index]
             notebooks[index] = notebook
-            return saveNotebooks()
+            if saveNotebooks() {
+                return true
+            } else {
+                notebooks[index] = previous
+                return false
+            }
         } else {
             print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
             return false
