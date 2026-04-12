@@ -353,21 +353,26 @@ struct PDFPagePickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: pdfName) {
             isLoadingCount = true
-            defer { isLoadingCount = false }
             // Use a child task (group.addTask) so that if SwiftUI cancels this .task
             // (e.g. the view disappears or pdfName changes), the page-count work is
             // also interrupted — Task.detached would not inherit that cancellation.
             // pageCount(for:) returns Int?, so the element type is also Int?.
             // group.next() therefore returns Int?? (optional-of-optional); we flatten
-            // it back into pageCount (Int?) via optional binding.
-            await withTaskGroup(of: Int?.self) { group in
+            // it back into a local Int? result and only update view state if this
+            // task is still current.
+            let loadedPageCount = await withTaskGroup(of: Int?.self, returning: Int?.self) { group in
                 group.addTask(priority: .userInitiated) {
                     PDFStorageService.shared.pageCount(for: pdfName)
                 }
                 // group.next() returns Int?? (outer optional = "did a task finish?",
                 // inner optional = the Int? returned by pageCount). Flatten with ?? nil.
-                pageCount = await group.next() ?? nil
+                return await group.next() ?? nil
             }
+
+            guard !Task.isCancelled else { return }
+
+            pageCount = loadedPageCount
+            isLoadingCount = false
         }
     }
 }
