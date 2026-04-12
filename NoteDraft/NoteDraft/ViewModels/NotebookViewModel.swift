@@ -157,7 +157,14 @@ class NotebookViewModel: ObservableObject {
             )
             notebook.pages.append(page)
         }
-        saveNotebook()
+        guard saveNotebook() else {
+            // Persist failed — roll back the in-memory pages we just appended so the
+            // notebook stays consistent with what is actually on disk.
+            notebook.pages.removeLast(importedCount)
+            // Keep the filename registered in inProgressImportNames so orphan-PDF
+            // cleanup does not delete the file before the caller can react.
+            throw PDFImportError.importFailed("Failed to save the notebook after importing the PDF. Please try again.")
+        }
         // Pages are now persisted; the file is referenced and can be collected normally.
         PDFStorageService.shared.finishImport(filename: filename)
 
@@ -166,7 +173,8 @@ class NotebookViewModel: ObservableObject {
 
     // MARK: - Private helpers
 
-    private func saveNotebook() {
-        dataStore.updateNotebook(notebook)
+    @discardableResult
+    private func saveNotebook() -> Bool {
+        return dataStore.updateNotebook(notebook)
     }
 }

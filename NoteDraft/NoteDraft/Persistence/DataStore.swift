@@ -79,7 +79,6 @@ class DataStore: ObservableObject {
         saveNotebooks()
     }
     
-    @discardableResult
     func updateNotebook(_ notebook: Notebook) -> Bool {
         guard let index = notebooks.firstIndex(where: { $0.id == notebook.id }) else {
             print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
