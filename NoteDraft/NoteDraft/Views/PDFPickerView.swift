@@ -263,8 +263,10 @@ private struct PDFListItemView: View {
             // Clear stale state immediately so that if this row is reused for a
             // different pdfName the previous thumbnail/count are not shown while
             // the new tasks are still running.
-            thumbnail = nil
-            pageCount = nil
+            await MainActor.run {
+                thumbnail = nil
+                pageCount = nil
+            }
             // Run both file operations as concurrent child tasks so neither
             // blocks the main actor.
             await withTaskGroup(of: Void.self) { group in
