@@ -36,10 +36,19 @@ class DataStore: ObservableObject {
     
     @discardableResult
     func saveNotebooks() -> Bool {
+        writeNotebooks(notebooks)
+    }
+
+    /// Serializes `updatedNotebooks` to disk without touching `self.notebooks`.
+    /// Called by both `saveNotebooks()` and `updateNotebook(_:)`. The latter
+    /// uses it so that a failed write never publishes transient state to SwiftUI
+    /// observers — `notebooks` is only assigned after the write succeeds.
+    @discardableResult
+    private func writeNotebooks(_ updatedNotebooks: [Notebook]) -> Bool {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(notebooks)
+            let data = try encoder.encode(updatedNotebooks)
             try data.write(to: notebooksFileURL, options: .atomic)
             return true
         } catch {
@@ -72,21 +81,19 @@ class DataStore: ObservableObject {
     
     @discardableResult
     func updateNotebook(_ notebook: Notebook) -> Bool {
-        if let index = notebooks.firstIndex(where: { $0.id == notebook.id }) {
-            // Update in memory, but restore the previous value if the disk write
-            // fails so the in-memory state stays consistent with what is persisted.
-            let previous = notebooks[index]
-            notebooks[index] = notebook
-            if saveNotebooks() {
-                return true
-            } else {
-                notebooks[index] = previous
-                return false
-            }
-        } else {
+        guard let index = notebooks.firstIndex(where: { $0.id == notebook.id }) else {
             print("Warning: Tried to update notebook with id \(notebook.id), but it was not found.")
             return false
         }
+        // Build the candidate array and write it to disk BEFORE updating the @Published
+        // array. This ensures that if the write fails, SwiftUI observers never see a
+        // notebook state that wasn't persisted — avoiding UI flicker and a spurious
+        // second update that would occur if we mutated first and then rolled back.
+        var candidate = notebooks
+        candidate[index] = notebook
+        guard writeNotebooks(candidate) else { return false }
+        notebooks = candidate
+        return true
     }
     
     func deleteNotebook(_ notebook: Notebook) {

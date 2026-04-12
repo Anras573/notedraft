@@ -90,6 +90,11 @@ class PageViewModel: ObservableObject {
     }
     
     func setBackgroundType(_ type: BackgroundType) {
+        // Capture previous state before any mutation so we can revert on save failure.
+        let previousBackgroundType = page.backgroundType
+        let previousSelectedBackgroundType = selectedBackgroundType
+        let previousPDFBackground = page.pdfBackground
+
         // Capture whether the page had a PDF background before the backgroundType
         // didSet clears it, so we can schedule orphan-PDF cleanup after a successful save.
         let hadPDFBackground = page.backgroundType == .pdfPage && page.pdfBackground?.pdfName != nil
@@ -104,6 +109,16 @@ class PageViewModel: ObservableObject {
                     PDFStorageService.shared.deleteUnreferencedPDFs(keeping: referencedPDFNames)
                 }
             }
+        } else {
+            // Revert in-memory state to match what's on disk.
+            // Restore backgroundType first. Page.backgroundType.didSet only clears
+            // pdfBackground when the new type is not .pdfPage, so:
+            //  - If previousBackgroundType == .pdfPage: didSet won't clear pdfBackground.
+            //  - If previousBackgroundType != .pdfPage: previousPDFBackground is nil anyway.
+            // In both cases it is safe to restore pdfBackground immediately after.
+            page.backgroundType = previousBackgroundType
+            page.pdfBackground = previousPDFBackground
+            selectedBackgroundType = previousSelectedBackgroundType
         }
     }
     
@@ -114,18 +129,36 @@ class PageViewModel: ObservableObject {
         guard let imageName = saveImageToStorage(image) else {
             throw ImageStorageError.saveFailed("Failed to save background image to storage")
         }
-        
-        // Delete old background image after successfully saving the new one
-        if let oldBackgroundImage = page.backgroundImage {
-            deleteImageFromStorage(oldBackgroundImage)
-            removeCachedImage(oldBackgroundImage)
-        }
-        
+
+        // Capture previous state before any mutation so we can revert on save failure.
+        let previousBackgroundImage = page.backgroundImage
+        let previousBackgroundType = page.backgroundType
+        let previousSelectedBackgroundType = selectedBackgroundType
+        let previousPDFBackground = page.pdfBackground
+
         // Update page with new background image
         page.backgroundImage = imageName
         page.backgroundType = .customImage
         selectedBackgroundType = .customImage
-        saveChanges()
+
+        if saveChanges() {
+            // Only delete the old file after the write is confirmed to avoid data loss
+            // if the page is re-saved later and the old file is already gone.
+            if let oldBackgroundImage = previousBackgroundImage {
+                deleteImageFromStorage(oldBackgroundImage)
+                removeCachedImage(oldBackgroundImage)
+            }
+        } else {
+            // Revert in-memory state. Restore backgroundType first (same reasoning
+            // as setBackgroundType: Page.backgroundType.didSet only clears pdfBackground
+            // when the new type is not .pdfPage, so restoring it first is always safe).
+            page.backgroundType = previousBackgroundType
+            page.pdfBackground = previousPDFBackground
+            page.backgroundImage = previousBackgroundImage
+            selectedBackgroundType = previousSelectedBackgroundType
+            // The newly saved image file is now orphaned; delete it.
+            deleteImageFromStorage(imageName)
+        }
     }
     
     func saveDrawing() {
