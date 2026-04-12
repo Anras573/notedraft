@@ -75,8 +75,9 @@ class DataStore: ObservableObject {
     }
     
     func addNotebook(_ notebook: Notebook) {
-        notebooks.append(notebook)
-        saveNotebooks()
+        let candidate = notebooks + [notebook]
+        guard writeNotebooks(candidate) else { return }
+        notebooks = candidate
     }
     
     func updateNotebook(_ notebook: Notebook) -> Bool {
@@ -96,8 +97,9 @@ class DataStore: ObservableObject {
     }
     
     func deleteNotebook(_ notebook: Notebook) {
-        notebooks.removeAll { $0.id == notebook.id }
-        saveNotebooks()
+        let candidate = notebooks.filter { $0.id != notebook.id }
+        guard writeNotebooks(candidate) else { return }
+        notebooks = candidate
     }
     
     /// Returns the set of PDF filenames that are still referenced by at least one page

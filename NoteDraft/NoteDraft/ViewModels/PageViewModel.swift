@@ -303,6 +303,7 @@ class PageViewModel: ObservableObject {
         let oldPDFName = page.pdfBackground?.pdfName
         let oldPDFBackground = page.pdfBackground
         let oldBackgroundType = page.backgroundType
+        let oldSelectedBackgroundType = selectedBackgroundType
         // Capture the old background image name before any changes so we can
         // restore it if persistence fails (avoids deleting the file before we
         // know the save succeeded, preventing irreversible data loss).
@@ -321,7 +322,7 @@ class PageViewModel: ObservableObject {
             // backgroundImage, so the UI stays consistent and the old file is
             // not lost.
             page.backgroundType = oldBackgroundType
-            selectedBackgroundType = oldBackgroundType
+            selectedBackgroundType = oldSelectedBackgroundType
             page.pdfBackground = oldPDFBackground
             page.backgroundImage = oldBackgroundImage
             return false
