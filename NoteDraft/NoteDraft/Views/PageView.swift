@@ -10,6 +10,11 @@ import PencilKit
 import PhotosUI
 
 struct PageView: View {
+    private enum PendingBackgroundChange {
+        case setType(BackgroundType)
+        case openPDFPicker
+    }
+
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -26,6 +31,9 @@ struct PageView: View {
     @State private var showPDFPagePicker = false
     /// Shown when saving the PDF background selection fails.
     @State private var showPDFSaveError = false
+    /// Shown when changing backgrounds on a page with existing drawing content.
+    @State private var showBackgroundChangeWarning = false
+    @State private var pendingBackgroundChange: PendingBackgroundChange?
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -50,11 +58,7 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.selectableCases) { type in
                         Button {
-                            if type == .pdfPage {
-                                showPDFPicker = true
-                            } else {
-                                viewModel.setBackgroundType(type)
-                            }
+                            handleBackgroundSelection(type)
                         } label: {
                             HStack {
                                 Text(type.displayName)
@@ -150,6 +154,16 @@ struct PageView: View {
         } message: {
             Text("The selected PDF page could not be saved. Please try again.")
         }
+        .alert("Change Background?", isPresented: $showBackgroundChangeWarning) {
+            Button("Cancel", role: .cancel) {
+                pendingBackgroundChange = nil
+            }
+            Button("Change", role: .destructive) {
+                applyPendingBackgroundChange()
+            }
+        } message: {
+            Text("You already have drawing content on this page. Changing the background could affect your notes. Do you want to continue?")
+        }
         // PDF picker sheet: browse/import PDFs then pick a page
         .sheet(isPresented: $showPDFPicker) {
             PDFPickerView(onSelectPage: setPDFBackground)
@@ -191,6 +205,51 @@ struct PageView: View {
         showPDFPicker = false
         showPDFPagePicker = false
         return true
+    }
+
+    private var hasExistingDrawingContent: Bool {
+        if !viewModel.drawing.bounds.isEmpty {
+            return true
+        }
+
+        guard let drawingData = viewModel.page.drawingData,
+              let persistedDrawing = try? PKDrawing(data: drawingData) else {
+            return false
+        }
+
+        return !persistedDrawing.bounds.isEmpty
+    }
+
+    private func handleBackgroundSelection(_ type: BackgroundType) {
+        // No-op for selecting the same non-PDF background type.
+        if type != .pdfPage, viewModel.selectedBackgroundType == type {
+            return
+        }
+
+        let nextAction: PendingBackgroundChange = (type == .pdfPage) ? .openPDFPicker : .setType(type)
+
+        guard hasExistingDrawingContent else {
+            execute(nextAction)
+            return
+        }
+
+        pendingBackgroundChange = nextAction
+        showBackgroundChangeWarning = true
+    }
+
+    private func applyPendingBackgroundChange() {
+        guard let pendingBackgroundChange else { return }
+        pendingBackgroundChange = nil
+        execute(pendingBackgroundChange)
+    }
+
+    private func execute(_ action: PendingBackgroundChange) {
+        switch action {
+        case .setType(let type):
+            viewModel.setBackgroundType(type)
+        case .openPDFPicker:
+            showPDFPicker = true
+        }
     }
     
     /// Helper method to handle image loading from PhotosPicker
