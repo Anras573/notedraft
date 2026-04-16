@@ -238,9 +238,9 @@ struct PageView: View {
     }
 
     private func applyPendingBackgroundChange() {
-        guard let pendingBackgroundChange else { return }
+        guard let action = pendingBackgroundChange else { return }
         pendingBackgroundChange = nil
-        execute(pendingBackgroundChange)
+        execute(action)
     }
 
     private func execute(_ action: PendingBackgroundChange) {
