@@ -162,7 +162,7 @@ struct PageView: View {
                 applyPendingBackgroundChange()
             }
         } message: {
-            Text("You already have drawing content on this page. Changing the background could affect your notes. Do you want to continue?")
+            Text("You already have drawing content on this page. Your drawing will be kept, but changing the background can change how your notes look. Do you want to continue?")
         }
         // PDF picker sheet: browse/import PDFs then pick a page
         .sheet(isPresented: $showPDFPicker) {
