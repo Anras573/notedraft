@@ -91,7 +91,7 @@ struct PageView: View {
             ToolbarItem(placement: .topBarLeading) {
                 if viewModel.selectedBackgroundType == .pdfPage {
                     Button {
-                        handlePDFPagePickerSelection()
+                        requestPDFPagePickerOpen()
                     } label: {
                         Image(systemName: "doc.text.magnifyingglass")
                     }
@@ -230,36 +230,24 @@ struct PageView: View {
 
         let nextAction: PendingBackgroundChange = (type == .pdfPage) ? .openPDFPicker : .setType(type)
 
-        guard hasExistingDrawingContent else {
-            execute(nextAction)
-            return
-        }
-
-        pendingBackgroundChange = nextAction
-        showBackgroundChangeWarning = true
+        requestPendingChange(nextAction)
     }
 
-    private func handlePDFPagePickerSelection() {
-        let pendingAction: PendingBackgroundChange = .openPDFPagePicker
-
-        guard hasExistingDrawingContent else {
-            execute(pendingAction)
-            return
-        }
-
-        pendingBackgroundChange = pendingAction
-        showBackgroundChangeWarning = true
+    private func requestPDFPagePickerOpen() {
+        requestPendingChange(.openPDFPagePicker)
     }
 
     private func requestBackgroundImageChange(_ image: UIImage) {
-        let pendingAction: PendingBackgroundChange = .setCustomImage(image)
+        requestPendingChange(.setCustomImage(image))
+    }
 
+    private func requestPendingChange(_ action: PendingBackgroundChange) {
         guard hasExistingDrawingContent else {
-            execute(pendingAction)
+            execute(action)
             return
         }
 
-        pendingBackgroundChange = pendingAction
+        pendingBackgroundChange = action
         showBackgroundChangeWarning = true
     }
 
