@@ -10,6 +10,13 @@ import PencilKit
 import PhotosUI
 
 struct PageView: View {
+    private enum PendingBackgroundChange {
+        case setType(BackgroundType)
+        case openPDFPicker
+        case openPDFPagePicker
+        case setCustomImage(UIImage)
+    }
+
     @ObservedObject var viewModel: PageViewModel
     @State private var canvasView = PKCanvasView()
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -26,6 +33,9 @@ struct PageView: View {
     @State private var showPDFPagePicker = false
     /// Shown when saving the PDF background selection fails.
     @State private var showPDFSaveError = false
+    /// Shown when changing backgrounds on a page with existing drawing content.
+    @State private var showBackgroundChangeWarning = false
+    @State private var pendingBackgroundChange: PendingBackgroundChange?
     @Environment(\.dismiss) private var dismiss
     
     init(viewModel: PageViewModel) {
@@ -50,11 +60,7 @@ struct PageView: View {
                 Menu {
                     ForEach(BackgroundType.selectableCases) { type in
                         Button {
-                            if type == .pdfPage {
-                                showPDFPicker = true
-                            } else {
-                                viewModel.setBackgroundType(type)
-                            }
+                            handleBackgroundSelection(type)
                         } label: {
                             HStack {
                                 Text(type.displayName)
@@ -85,7 +91,7 @@ struct PageView: View {
             ToolbarItem(placement: .topBarLeading) {
                 if viewModel.selectedBackgroundType == .pdfPage {
                     Button {
-                        showPDFPagePicker = true
+                        requestPDFPagePickerOpen()
                     } label: {
                         Image(systemName: "doc.text.magnifyingglass")
                     }
@@ -137,7 +143,7 @@ struct PageView: View {
                 selectedItem: $selectedBackgroundPhotoItem,
                 errorPrefix: "background "
             ) { image in
-                try viewModel.setBackgroundImage(image)
+                requestBackgroundImageChange(image)
             }
         }
         .alert("Unable to Load Image", isPresented: $showImageLoadError) {
@@ -149,6 +155,16 @@ struct PageView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text("The selected PDF page could not be saved. Please try again.")
+        }
+        .alert("Change Background?", isPresented: $showBackgroundChangeWarning) {
+            Button("Cancel", role: .cancel) {
+                pendingBackgroundChange = nil
+            }
+            Button("Change") {
+                applyPendingBackgroundChange()
+            }
+        } message: {
+            Text("You already have drawing content on this page. Your drawing will be kept, but changing the background can change how your notes look. Do you want to continue?")
         }
         // PDF picker sheet: browse/import PDFs then pick a page
         .sheet(isPresented: $showPDFPicker) {
@@ -191,6 +207,63 @@ struct PageView: View {
         showPDFPicker = false
         showPDFPagePicker = false
         return true
+    }
+
+    private var hasExistingDrawingContent: Bool {
+        !viewModel.drawing.bounds.isEmpty
+    }
+
+    private func handleBackgroundSelection(_ type: BackgroundType) {
+        // No-op for selecting the same non-PDF background type.
+        if type != .pdfPage, viewModel.selectedBackgroundType == type {
+            return
+        }
+
+        let nextAction: PendingBackgroundChange = (type == .pdfPage) ? .openPDFPicker : .setType(type)
+
+        requestPendingChange(nextAction)
+    }
+
+    private func requestPDFPagePickerOpen() {
+        requestPendingChange(.openPDFPagePicker)
+    }
+
+    private func requestBackgroundImageChange(_ image: UIImage) {
+        requestPendingChange(.setCustomImage(image))
+    }
+
+    private func requestPendingChange(_ action: PendingBackgroundChange) {
+        guard hasExistingDrawingContent else {
+            execute(action)
+            return
+        }
+
+        pendingBackgroundChange = action
+        showBackgroundChangeWarning = true
+    }
+
+    private func applyPendingBackgroundChange() {
+        guard let action = pendingBackgroundChange else { return }
+        pendingBackgroundChange = nil
+        execute(action)
+    }
+
+    private func execute(_ action: PendingBackgroundChange) {
+        switch action {
+        case .setType(let type):
+            viewModel.setBackgroundType(type)
+        case .openPDFPicker:
+            showPDFPicker = true
+        case .openPDFPagePicker:
+            showPDFPagePicker = true
+        case .setCustomImage(let image):
+            do {
+                try viewModel.setBackgroundImage(image)
+            } catch {
+                imageLoadErrorMessage = "Failed to save background image: \(error.localizedDescription)"
+                showImageLoadError = true
+            }
+        }
     }
     
     /// Helper method to handle image loading from PhotosPicker
