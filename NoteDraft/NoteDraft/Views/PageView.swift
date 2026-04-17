@@ -210,8 +210,7 @@ struct PageView: View {
     }
 
     private var hasExistingDrawingContent: Bool {
-        viewModel.loadDrawingIfNeeded()
-        return !viewModel.drawing.bounds.isEmpty
+        !viewModel.drawing.bounds.isEmpty
     }
 
     private func handleBackgroundSelection(_ type: BackgroundType) {
