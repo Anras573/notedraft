@@ -158,7 +158,7 @@ struct PageView: View {
             Button("Cancel", role: .cancel) {
                 pendingBackgroundChange = nil
             }
-            Button("Change", role: .destructive) {
+            Button("Change") {
                 applyPendingBackgroundChange()
             }
         } message: {
