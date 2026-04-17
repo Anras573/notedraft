@@ -240,26 +240,26 @@ struct PageView: View {
     }
 
     private func handlePDFPagePickerSelection() {
-        let nextAction: PendingBackgroundChange = .openPDFPagePicker
+        let pendingAction: PendingBackgroundChange = .openPDFPagePicker
 
         guard hasExistingDrawingContent else {
-            execute(nextAction)
+            execute(pendingAction)
             return
         }
 
-        pendingBackgroundChange = nextAction
+        pendingBackgroundChange = pendingAction
         showBackgroundChangeWarning = true
     }
 
     private func requestBackgroundImageChange(_ image: UIImage) {
-        let nextAction: PendingBackgroundChange = .setCustomImage(image)
+        let pendingAction: PendingBackgroundChange = .setCustomImage(image)
 
         guard hasExistingDrawingContent else {
-            execute(nextAction)
+            execute(pendingAction)
             return
         }
 
-        pendingBackgroundChange = nextAction
+        pendingBackgroundChange = pendingAction
         showBackgroundChangeWarning = true
     }
 
