@@ -13,6 +13,8 @@ struct PageView: View {
     private enum PendingBackgroundChange {
         case setType(BackgroundType)
         case openPDFPicker
+        case openPDFPagePicker
+        case setCustomImage(UIImage)
     }
 
     @ObservedObject var viewModel: PageViewModel
@@ -89,7 +91,7 @@ struct PageView: View {
             ToolbarItem(placement: .topBarLeading) {
                 if viewModel.selectedBackgroundType == .pdfPage {
                     Button {
-                        showPDFPagePicker = true
+                        handlePDFPagePickerSelection()
                     } label: {
                         Image(systemName: "doc.text.magnifyingglass")
                     }
@@ -141,7 +143,7 @@ struct PageView: View {
                 selectedItem: $selectedBackgroundPhotoItem,
                 errorPrefix: "background "
             ) { image in
-                try viewModel.setBackgroundImage(image)
+                requestBackgroundImageChange(image)
             }
         }
         .alert("Unable to Load Image", isPresented: $showImageLoadError) {
@@ -237,6 +239,30 @@ struct PageView: View {
         showBackgroundChangeWarning = true
     }
 
+    private func handlePDFPagePickerSelection() {
+        let nextAction: PendingBackgroundChange = .openPDFPagePicker
+
+        guard hasExistingDrawingContent else {
+            execute(nextAction)
+            return
+        }
+
+        pendingBackgroundChange = nextAction
+        showBackgroundChangeWarning = true
+    }
+
+    private func requestBackgroundImageChange(_ image: UIImage) {
+        let nextAction: PendingBackgroundChange = .setCustomImage(image)
+
+        guard hasExistingDrawingContent else {
+            execute(nextAction)
+            return
+        }
+
+        pendingBackgroundChange = nextAction
+        showBackgroundChangeWarning = true
+    }
+
     private func applyPendingBackgroundChange() {
         guard let action = pendingBackgroundChange else { return }
         pendingBackgroundChange = nil
@@ -249,6 +275,15 @@ struct PageView: View {
             viewModel.setBackgroundType(type)
         case .openPDFPicker:
             showPDFPicker = true
+        case .openPDFPagePicker:
+            showPDFPagePicker = true
+        case .setCustomImage(let image):
+            do {
+                try viewModel.setBackgroundImage(image)
+            } catch {
+                imageLoadErrorMessage = "Failed to save background image: \(error.localizedDescription)"
+                showImageLoadError = true
+            }
         }
     }
     
