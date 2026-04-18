@@ -178,11 +178,11 @@ struct NotebookPageScrollView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     let initialPageIndex: Int
     @State private var selectedPageID: UUID?
+    @State private var selectedPageIndex: Int?
 
     private var visiblePageIndex: Int? {
-        if let selectedPageID,
-           let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == selectedPageID }) {
-            return index
+        if let selectedPageIndex {
+            return selectedPageIndex
         }
 
         let fallbackIndex = notebookViewModel.currentPageIndex
@@ -214,8 +214,8 @@ struct NotebookPageScrollView: View {
                     setInitialSelection()
                 }
                 .onChange(of: selectedPageID) { _, newValue in
-                    guard let newValue else { return }
-                    guard let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == newValue }) else { return }
+                    guard let index = index(for: newValue) else { return }
+                    selectedPageIndex = index
                     notebookViewModel.setCurrentPageIndex(index)
                 }
                 .onChange(of: notebookViewModel.notebook.pages.count) { _, _ in
@@ -228,8 +228,8 @@ struct NotebookPageScrollView: View {
     }
 
     private func setInitialSelection() {
-        if let selectedPageID,
-           let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == selectedPageID }) {
+        if let index = index(for: selectedPageID) {
+            selectedPageIndex = index
             notebookViewModel.setCurrentPageIndex(index)
             return
         }
@@ -237,29 +237,37 @@ struct NotebookPageScrollView: View {
         guard let boundedIndex = clampedPageIndex(preferred: initialPageIndex) else { return }
         let pageId = notebookViewModel.notebook.pages[boundedIndex].id
         selectedPageID = pageId
+        selectedPageIndex = boundedIndex
         notebookViewModel.setCurrentPageIndex(boundedIndex)
     }
 
     private func ensureValidSelection() {
         guard !notebookViewModel.notebook.pages.isEmpty else {
             selectedPageID = nil
+            selectedPageIndex = nil
             return
         }
 
-        if let selectedPageID,
-           let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == selectedPageID }) {
+        if let index = index(for: selectedPageID) {
+            selectedPageIndex = index
             notebookViewModel.setCurrentPageIndex(index)
             return
         }
 
         guard let fallbackIndex = clampedPageIndex(preferred: notebookViewModel.currentPageIndex) else { return }
         selectedPageID = notebookViewModel.notebook.pages[fallbackIndex].id
+        selectedPageIndex = fallbackIndex
         notebookViewModel.setCurrentPageIndex(fallbackIndex)
     }
 
     private func clampedPageIndex(preferred index: Int) -> Int? {
         guard !notebookViewModel.notebook.pages.isEmpty else { return nil }
         return min(max(index, 0), notebookViewModel.notebook.pages.count - 1)
+    }
+
+    private func index(for pageID: UUID?) -> Int? {
+        guard let pageID else { return nil }
+        return notebookViewModel.notebook.pages.firstIndex(where: { $0.id == pageID })
     }
 }
 
