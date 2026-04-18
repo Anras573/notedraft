@@ -174,6 +174,74 @@ struct PageCanvasContent: View {
     }
 }
 
+struct NotebookPageScrollView: View {
+    @ObservedObject var notebookViewModel: NotebookViewModel
+    let initialPageIndex: Int
+    @State private var selectedPageID: UUID?
+
+    private var navigationTitle: String {
+        let total = notebookViewModel.notebook.pages.count
+        guard total > 0 else { return notebookViewModel.notebook.name }
+        return "Page \(notebookViewModel.currentPageIndex + 1) of \(total)"
+    }
+
+    var body: some View {
+        Group {
+            if notebookViewModel.notebook.pages.isEmpty {
+                Text("No pages available.")
+                    .foregroundStyle(.secondary)
+            } else {
+                TabView(selection: $selectedPageID) {
+                    ForEach(notebookViewModel.notebook.pages) { page in
+                        PageView(viewModel: notebookViewModel.createPageViewModel(for: page))
+                            .tag(page.id as UUID?)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .automatic))
+                .onAppear {
+                    setInitialSelection()
+                }
+                .onChange(of: selectedPageID) { _, newValue in
+                    guard let newValue else { return }
+                    guard let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == newValue }) else { return }
+                    notebookViewModel.setCurrentPageIndex(index)
+                }
+                .onChange(of: notebookViewModel.notebook.pages.count) { _, _ in
+                    ensureValidSelection()
+                }
+            }
+        }
+        .navigationTitle(navigationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func setInitialSelection() {
+        guard !notebookViewModel.notebook.pages.isEmpty else { return }
+        let boundedIndex = min(max(initialPageIndex, 0), notebookViewModel.notebook.pages.count - 1)
+        let pageId = notebookViewModel.notebook.pages[boundedIndex].id
+        selectedPageID = pageId
+        notebookViewModel.setCurrentPageIndex(boundedIndex)
+    }
+
+    private func ensureValidSelection() {
+        guard !notebookViewModel.notebook.pages.isEmpty else {
+            selectedPageID = nil
+            notebookViewModel.setCurrentPageIndex(0)
+            return
+        }
+
+        if let selectedPageID,
+           let index = notebookViewModel.notebook.pages.firstIndex(where: { $0.id == selectedPageID }) {
+            notebookViewModel.setCurrentPageIndex(index)
+            return
+        }
+
+        let fallbackIndex = min(max(notebookViewModel.currentPageIndex, 0), notebookViewModel.notebook.pages.count - 1)
+        selectedPageID = notebookViewModel.notebook.pages[fallbackIndex].id
+        notebookViewModel.setCurrentPageIndex(fallbackIndex)
+    }
+}
+
 #Preview {
     let dataStore = DataStore()
     let notebook = Notebook(name: "My Notebook", pages: [
