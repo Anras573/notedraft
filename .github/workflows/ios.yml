@@ -26,16 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           device_id="$(
-            xcrun simctl list devices available --json | python3 -c '
-import json, sys
-data = json.load(sys.stdin)
-for _, devices in data.get("devices", {}).items():
-    for device in devices:
-        if device.get("isAvailable") and "iPad" in device.get("name", ""):
-            print(device.get("udid", ""))
-            sys.exit(0)
-print("")
-'
+            python3 -c "import json, subprocess; data = json.loads(subprocess.run(['xcrun', 'simctl', 'list', 'devices', 'available', '--json'], check=True, capture_output=True, text=True).stdout); print(next((device.get('udid', '') for devices in data.get('devices', {}).values() for device in devices if device.get('isAvailable') and 'iPad' in device.get('name', '')), ''))"
           )"
           if [ -z "${device_id}" ]; then
             echo "No available iPad simulator found."
