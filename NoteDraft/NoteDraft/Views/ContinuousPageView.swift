@@ -182,13 +182,19 @@ struct NotebookPageScrollView: View {
     @State private var selectedPageIndex: Int = 0
     @State private var hasInitializedSelection = false
 
-    private var visiblePageIndex: Int? {
+    init(notebookViewModel: NotebookViewModel, initialPageIndex: Int) {
+        self.notebookViewModel = notebookViewModel
+        self.initialPageIndex = initialPageIndex
+        _selectedPageIndex = State(initialValue: max(initialPageIndex, 0))
+    }
+
+    private var displayedPageIndex: Int? {
         clampedPageIndex(preferred: selectedPageIndex)
     }
 
     private var navigationTitle: String {
-        guard let visiblePageIndex else { return notebookViewModel.notebook.name }
-        return "Page \(visiblePageIndex + 1) of \(notebookViewModel.notebook.pages.count)"
+        guard let displayedPageIndex else { return notebookViewModel.notebook.name }
+        return "Page \(displayedPageIndex + 1) of \(notebookViewModel.notebook.pages.count)"
     }
 
     var body: some View {
