@@ -174,6 +174,8 @@ struct PageCanvasContent: View {
     }
 }
 
+/// A horizontally swipeable page container that starts on a selected page
+/// so users can move between notebook pages without returning to the list.
 struct NotebookPageScrollView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     let initialPageIndex: Int
@@ -185,11 +187,7 @@ struct NotebookPageScrollView: View {
             return selectedPageIndex
         }
 
-        let fallbackIndex = notebookViewModel.currentPageIndex
-        guard fallbackIndex >= 0 && fallbackIndex < notebookViewModel.notebook.pages.count else {
-            return nil
-        }
-        return fallbackIndex
+        return clampedPageIndex(preferred: notebookViewModel.currentPageIndex)
     }
 
     private var navigationTitle: String {
@@ -229,16 +227,12 @@ struct NotebookPageScrollView: View {
 
     private func setInitialSelection() {
         if let index = index(for: selectedPageID) {
-            selectedPageIndex = index
-            notebookViewModel.setCurrentPageIndex(index)
+            applySelection(at: index)
             return
         }
 
         guard let boundedIndex = clampedPageIndex(preferred: initialPageIndex) else { return }
-        let pageId = notebookViewModel.notebook.pages[boundedIndex].id
-        selectedPageID = pageId
-        selectedPageIndex = boundedIndex
-        notebookViewModel.setCurrentPageIndex(boundedIndex)
+        applySelection(at: boundedIndex)
     }
 
     private func ensureValidSelection() {
@@ -249,15 +243,12 @@ struct NotebookPageScrollView: View {
         }
 
         if let index = index(for: selectedPageID) {
-            selectedPageIndex = index
-            notebookViewModel.setCurrentPageIndex(index)
+            applySelection(at: index)
             return
         }
 
         guard let fallbackIndex = clampedPageIndex(preferred: notebookViewModel.currentPageIndex) else { return }
-        selectedPageID = notebookViewModel.notebook.pages[fallbackIndex].id
-        selectedPageIndex = fallbackIndex
-        notebookViewModel.setCurrentPageIndex(fallbackIndex)
+        applySelection(at: fallbackIndex)
     }
 
     private func clampedPageIndex(preferred index: Int) -> Int? {
@@ -268,6 +259,12 @@ struct NotebookPageScrollView: View {
     private func index(for pageID: UUID?) -> Int? {
         guard let pageID else { return nil }
         return notebookViewModel.notebook.pages.firstIndex(where: { $0.id == pageID })
+    }
+
+    private func applySelection(at index: Int) {
+        selectedPageID = notebookViewModel.notebook.pages[index].id
+        selectedPageIndex = index
+        notebookViewModel.setCurrentPageIndex(index)
     }
 }
 
