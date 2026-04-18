@@ -108,8 +108,9 @@ struct NotebookPageScrollView: View {
     /// These IDs are retained in the view-model cache and all others are pruned.
     private func activePageIDs(for centerIndex: Int, pages: [Page]) -> Set<UUID> {
         guard !pages.isEmpty else { return [] }
-        let lowerBound = max(0, centerIndex - 1)
-        let upperBound = min(pages.count - 1, centerIndex + 1)
+        let clampedCenterIndex = min(max(centerIndex, 0), pages.count - 1)
+        let lowerBound = max(0, clampedCenterIndex - 1)
+        let upperBound = min(pages.count - 1, clampedCenterIndex + 1)
         return Set((lowerBound...upperBound).map { pages[$0].id })
     }
 }
