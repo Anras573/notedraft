@@ -12,6 +12,9 @@ jobs:
     runs-on: macos-latest
     permissions:
       contents: read
+    env:
+      PROJECT_PATH: NoteDraft/NoteDraft.xcodeproj
+      SCHEME: NoteDraft
 
     steps:
       - name: Checkout
@@ -30,7 +33,7 @@ for _, devices in data.get("devices", {}).items():
     for device in devices:
         if device.get("isAvailable") and "iPad" in device.get("name", ""):
             print(device.get("udid", ""))
-            raise SystemExit
+            sys.exit(0)
 print("")
 '
           )"
@@ -45,8 +48,8 @@ print("")
         run: |
           set -euo pipefail
           xcodebuild build-for-testing \
-            -project NoteDraft/NoteDraft.xcodeproj \
-            -scheme NoteDraft \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.device_id }}" \
             CODE_SIGNING_ALLOWED=NO
 
@@ -55,7 +58,7 @@ print("")
         run: |
           set -euo pipefail
           xcodebuild test-without-building \
-            -project NoteDraft/NoteDraft.xcodeproj \
-            -scheme NoteDraft \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.device_id }}" \
             CODE_SIGNING_ALLOWED=NO
