@@ -10,6 +10,8 @@ jobs:
   build-and-test:
     name: Build and test on iPad simulator
     runs-on: macos-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -20,7 +22,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          device_id="$(xcrun simctl list devices available iOS | grep -m1 "iPad" | sed -E 's/.*\(([0-9A-F-]+)\) \(Available\).*/\1/')"
+          device_id="$(
+            xcrun simctl list devices available --json | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+for _, devices in data.get("devices", {}).items():
+    for device in devices:
+        if device.get("isAvailable") and "iPad" in device.get("name", ""):
+            print(device.get("udid", ""))
+            raise SystemExit
+print("")
+'
+          )"
           if [ -z "${device_id}" ]; then
             echo "No available iPad simulator found."
             exit 1
