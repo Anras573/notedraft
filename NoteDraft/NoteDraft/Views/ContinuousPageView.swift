@@ -179,11 +179,11 @@ struct PageCanvasContent: View {
 struct NotebookPageScrollView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     let initialPageIndex: Int
-    @State private var selectedPageID: UUID?
+    @State private var selectedPageIndex: Int = 0
     @State private var hasInitializedSelection = false
 
     private var visiblePageIndex: Int? {
-        index(for: selectedPageID)
+        clampedPageIndex(preferred: selectedPageIndex)
     }
 
     private var navigationTitle: String {
@@ -197,18 +197,18 @@ struct NotebookPageScrollView: View {
                 Text("No pages available.")
                     .foregroundStyle(.secondary)
             } else {
-                TabView(selection: $selectedPageID) {
-                    ForEach(notebookViewModel.notebook.pages) { page in
+                TabView(selection: $selectedPageIndex) {
+                    ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
                         PageView(viewModel: notebookViewModel.createPageViewModel(for: page))
-                            .tag(page.id as UUID?)
+                            .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .automatic))
                 .onAppear {
                     setInitialSelection()
                 }
-                .onChange(of: selectedPageID) { _, newValue in
-                    guard let index = index(for: newValue) else { return }
+                .onChange(of: selectedPageIndex) { _, newValue in
+                    guard let index = clampedPageIndex(preferred: newValue) else { return }
                     notebookViewModel.setCurrentPageIndex(index)
                 }
                 .onChange(of: notebookViewModel.notebook.pages.count) { _, _ in
@@ -233,17 +233,11 @@ struct NotebookPageScrollView: View {
 
     private func ensureValidSelection() {
         guard !notebookViewModel.notebook.pages.isEmpty else {
-            selectedPageID = nil
             return
         }
 
-        if let index = index(for: selectedPageID) {
-            applySelection(at: index)
-            return
-        }
-
-        guard let fallbackIndex = clampedPageIndex(preferred: notebookViewModel.currentPageIndex) else { return }
-        applySelection(at: fallbackIndex)
+        guard let boundedIndex = clampedPageIndex(preferred: selectedPageIndex) else { return }
+        applySelection(at: boundedIndex)
     }
 
     private func clampedPageIndex(preferred index: Int) -> Int? {
@@ -251,13 +245,8 @@ struct NotebookPageScrollView: View {
         return min(max(index, 0), notebookViewModel.notebook.pages.count - 1)
     }
 
-    private func index(for pageID: UUID?) -> Int? {
-        guard let pageID else { return nil }
-        return notebookViewModel.notebook.pages.firstIndex(where: { $0.id == pageID })
-    }
-
     private func applySelection(at index: Int) {
-        selectedPageID = notebookViewModel.notebook.pages[index].id
+        selectedPageIndex = index
         notebookViewModel.setCurrentPageIndex(index)
     }
 }
