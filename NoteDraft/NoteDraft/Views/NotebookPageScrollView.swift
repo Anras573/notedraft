@@ -34,8 +34,15 @@ struct NotebookPageScrollView: View {
             } else {
                 TabView(selection: $selectedPageIndex) {
                     ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
-                        PageView(viewModel: pageViewModelCache.viewModel(for: page, notebookViewModel: notebookViewModel))
-                            .tag(index)
+                        Group {
+                            if shouldLoadPage(at: index) {
+                                PageView(viewModel: pageViewModelCache.viewModel(for: page, notebookViewModel: notebookViewModel))
+                            } else {
+                                Color.clear
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .automatic))
@@ -44,7 +51,7 @@ struct NotebookPageScrollView: View {
                 }
                 .onChange(of: selectedPageIndex) { _, newValue in
                     guard let index = clampedPageIndex(preferred: newValue) else { return }
-                    notebookViewModel.setCurrentPageIndex(index)
+                    applySelection(at: index)
                 }
                 .onChange(of: notebookViewModel.notebook.pages.count) { _, _ in
                     ensureValidSelection()
@@ -65,13 +72,15 @@ struct NotebookPageScrollView: View {
 
     private func ensureValidSelection() {
         let pageCount = notebookViewModel.notebook.pages.count
-        if pageCount != cachedPageCount {
-            pageViewModelCache.prune(keeping: notebookViewModel.notebook.pages)
-            cachedPageCount = pageCount
+        guard pageCount > 0 else {
+            pageViewModelCache.clear()
+            cachedPageCount = 0
+            return
         }
 
-        guard !notebookViewModel.notebook.pages.isEmpty else {
-            return
+        if pageCount != cachedPageCount {
+            pageViewModelCache.prune(keeping: activePageIDs(for: selectedPageIndex, pages: notebookViewModel.notebook.pages))
+            cachedPageCount = pageCount
         }
 
         guard let boundedIndex = clampedPageIndex(preferred: selectedPageIndex) else { return }
@@ -86,6 +95,22 @@ struct NotebookPageScrollView: View {
     private func applySelection(at index: Int) {
         selectedPageIndex = index
         notebookViewModel.setCurrentPageIndex(index)
+        pageViewModelCache.prune(keeping: activePageIDs(for: index, pages: notebookViewModel.notebook.pages))
+    }
+
+    /// Loads only the current page and one neighboring page on each side.
+    /// This keeps swiping smooth while avoiding eager creation of all tabs.
+    private func shouldLoadPage(at index: Int) -> Bool {
+        abs(index - selectedPageIndex) <= 1
+    }
+
+    /// Returns page IDs for the currently selected page and its immediate neighbors.
+    /// These IDs are retained in the view-model cache and all others are pruned.
+    private func activePageIDs(for centerIndex: Int, pages: [Page]) -> Set<UUID> {
+        guard !pages.isEmpty else { return [] }
+        let lowerBound = max(0, centerIndex - 1)
+        let upperBound = min(pages.count - 1, centerIndex + 1)
+        return Set((lowerBound...upperBound).map { pages[$0].id })
     }
 }
 
@@ -106,8 +131,11 @@ private final class PageViewModelCache {
         return created
     }
 
-    func prune(keeping pages: [Page]) {
-        let validPageIDs = Set(pages.map(\.id))
+    func prune(keeping validPageIDs: Set<UUID>) {
         cache = cache.filter { validPageIDs.contains($0.key) }
+    }
+
+    func clear() {
+        cache.removeAll()
     }
 }
