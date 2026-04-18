@@ -179,13 +179,13 @@ struct PageCanvasContent: View {
 struct NotebookPageScrollView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     let initialPageIndex: Int
-    @State private var selectedPageIndex: Int = 0
+    @State private var selectedPageIndex: Int
     @State private var hasInitializedSelection = false
 
     init(notebookViewModel: NotebookViewModel, initialPageIndex: Int) {
         self.notebookViewModel = notebookViewModel
         self.initialPageIndex = initialPageIndex
-        _selectedPageIndex = State(initialValue: max(initialPageIndex, 0))
+        _selectedPageIndex = State(initialValue: initialPageIndex)
     }
 
     private var displayedPageIndex: Int? {
@@ -227,10 +227,7 @@ struct NotebookPageScrollView: View {
     }
 
     private func setInitialSelection() {
-        guard !hasInitializedSelection else {
-            ensureValidSelection()
-            return
-        }
+        guard !hasInitializedSelection else { return }
         hasInitializedSelection = true
 
         guard let boundedIndex = clampedPageIndex(preferred: initialPageIndex) else { return }
