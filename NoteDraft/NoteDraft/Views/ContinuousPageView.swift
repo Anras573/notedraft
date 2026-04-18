@@ -180,14 +180,10 @@ struct NotebookPageScrollView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     let initialPageIndex: Int
     @State private var selectedPageID: UUID?
-    @State private var selectedPageIndex: Int?
+    @State private var hasInitializedSelection = false
 
     private var visiblePageIndex: Int? {
-        if let selectedPageIndex {
-            return selectedPageIndex
-        }
-
-        return clampedPageIndex(preferred: notebookViewModel.currentPageIndex)
+        index(for: selectedPageID)
     }
 
     private var navigationTitle: String {
@@ -213,7 +209,6 @@ struct NotebookPageScrollView: View {
                 }
                 .onChange(of: selectedPageID) { _, newValue in
                     guard let index = index(for: newValue) else { return }
-                    selectedPageIndex = index
                     notebookViewModel.setCurrentPageIndex(index)
                 }
                 .onChange(of: notebookViewModel.notebook.pages.count) { _, _ in
@@ -226,10 +221,11 @@ struct NotebookPageScrollView: View {
     }
 
     private func setInitialSelection() {
-        if let index = index(for: selectedPageID) {
-            applySelection(at: index)
+        guard !hasInitializedSelection else {
+            ensureValidSelection()
             return
         }
+        hasInitializedSelection = true
 
         guard let boundedIndex = clampedPageIndex(preferred: initialPageIndex) else { return }
         applySelection(at: boundedIndex)
@@ -238,7 +234,6 @@ struct NotebookPageScrollView: View {
     private func ensureValidSelection() {
         guard !notebookViewModel.notebook.pages.isEmpty else {
             selectedPageID = nil
-            selectedPageIndex = nil
             return
         }
 
@@ -263,7 +258,6 @@ struct NotebookPageScrollView: View {
 
     private func applySelection(at index: Int) {
         selectedPageID = notebookViewModel.notebook.pages[index].id
-        selectedPageIndex = index
         notebookViewModel.setCurrentPageIndex(index)
     }
 }
