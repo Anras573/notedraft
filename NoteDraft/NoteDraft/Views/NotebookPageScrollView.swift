@@ -21,6 +21,13 @@ struct NotebookPageScrollView: View {
         clampedPageIndex(preferred: selectedPageIndex)
     }
 
+    private var clampedSelection: Binding<Int> {
+        Binding(
+            get: { clampedPageIndex(preferred: selectedPageIndex) ?? 0 },
+            set: { selectedPageIndex = $0 }
+        )
+    }
+
     private var navigationTitle: String {
         guard let displayedPageIndex else { return notebookViewModel.notebook.name }
         return "Page \(displayedPageIndex + 1) of \(notebookViewModel.notebook.pages.count)"
@@ -32,7 +39,7 @@ struct NotebookPageScrollView: View {
                 Text("No pages available.")
                     .foregroundStyle(.secondary)
             } else {
-                TabView(selection: $selectedPageIndex) {
+                TabView(selection: clampedSelection) {
                     ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
                         Group {
                             if shouldLoadPage(at: index) {
@@ -79,7 +86,6 @@ struct NotebookPageScrollView: View {
         }
 
         if pageCount != cachedPageCount {
-            pageViewModelCache.prune(keeping: activePageIDs(for: selectedPageIndex, pages: notebookViewModel.notebook.pages))
             cachedPageCount = pageCount
         }
 
@@ -101,7 +107,8 @@ struct NotebookPageScrollView: View {
     /// Loads only the current page and one neighboring page on each side.
     /// This keeps swiping smooth while avoiding eager creation of all tabs.
     private func shouldLoadPage(at index: Int) -> Bool {
-        abs(index - selectedPageIndex) <= 1
+        let centerIndex = clampedPageIndex(preferred: selectedPageIndex) ?? index
+        return abs(index - centerIndex) <= 1
     }
 
     /// Returns page IDs for the currently selected page and its immediate neighbors.
