@@ -8,13 +8,11 @@ struct NotebookPageScrollView: View {
     @State private var selectedPageIndex: Int
     @State private var hasInitializedSelection = false
     @State private var pageViewModelCache = PageViewModelCache()
-    @State private var cachedPageCount: Int
 
     init(notebookViewModel: NotebookViewModel, initialPageIndex: Int) {
         self.notebookViewModel = notebookViewModel
         self.initialPageIndex = initialPageIndex
         _selectedPageIndex = State(initialValue: initialPageIndex)
-        _cachedPageCount = State(initialValue: notebookViewModel.notebook.pages.count)
     }
 
     private var displayedPageIndex: Int? {
@@ -81,12 +79,7 @@ struct NotebookPageScrollView: View {
         let pageCount = notebookViewModel.notebook.pages.count
         guard pageCount > 0 else {
             pageViewModelCache.clear()
-            cachedPageCount = 0
             return
-        }
-
-        if pageCount != cachedPageCount {
-            cachedPageCount = pageCount
         }
 
         guard let boundedIndex = clampedPageIndex(preferred: selectedPageIndex) else { return }
