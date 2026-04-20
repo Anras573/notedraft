@@ -67,7 +67,9 @@ final class BackgroundTypeTests: XCTestCase {
         XCTAssertEqual(backgroundType.rawValue, "pdfPage")
     }
     
-
+    // MARK: - ID Tests
+    
+    func testAllBackgroundTypeIDsMatchRawValues() {
         // Test all cases
         for backgroundType in BackgroundType.allCases {
             // Then

@@ -115,6 +115,7 @@ struct NotebookPageScrollView: View {
     }
 }
 
+@MainActor
 private final class PageViewModelCache {
     private var cache: [UUID: PageViewModel] = [:]
 
