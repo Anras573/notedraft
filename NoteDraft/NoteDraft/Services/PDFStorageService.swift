@@ -220,9 +220,7 @@ class PDFStorageService {
         let key = CacheKey(pdfName: pdfName, pageIndex: index, size: size)
 
         // Check cache first
-        cacheLock.lock()
-        let cached = cache.value(for: key)
-        cacheLock.unlock()
+        let cached = cachedImage(for: key)
         if let cached { return cached }
 
         // Dispatch heavy work to the global concurrent executor via a child task so:
@@ -243,9 +241,7 @@ class PDFStorageService {
                 let image = self.renderPDFPage(page, at: size)
 
                 if let image {
-                    self.cacheLock.lock()
-                    self.cache.insert(image, for: key)
-                    self.cacheLock.unlock()
+                    self.storeCachedImage(image, for: key)
                 }
                 return image
             }
@@ -332,6 +328,18 @@ class PDFStorageService {
         cacheLock.lock()
         defer { cacheLock.unlock() }
         cache.removeAll()
+    }
+
+    private func cachedImage(for key: CacheKey) -> UIImage? {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        return cache.value(for: key)
+    }
+
+    private func storeCachedImage(_ image: UIImage, for key: CacheKey) {
+        cacheLock.lock()
+        defer { cacheLock.unlock() }
+        cache.insert(image, for: key)
     }
 
     // MARK: - Private helpers
