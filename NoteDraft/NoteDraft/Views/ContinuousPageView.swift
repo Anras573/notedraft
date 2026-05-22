@@ -11,6 +11,7 @@ import PencilKit
 struct ContinuousPageView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
     @State private var pageViewModelCache = ContinuousPageViewModelCache()
+    private let cacheRetainRadius = 1
     
     private var navigationTitleText: String {
         guard !notebookViewModel.notebook.pages.isEmpty else {
@@ -57,15 +58,18 @@ struct ContinuousPageView: View {
                 }
                 .coordinateSpace(name: "scroll")
                 .onAppear {
-                    pageViewModelCache.prune(keeping: Set(notebookViewModel.notebook.pages.map(\.id)))
+                    prunePageViewModelCache()
                     // Scroll to the saved page position when view appears
                     if notebookViewModel.currentPageIndex >= 0 && notebookViewModel.currentPageIndex < notebookViewModel.notebook.pages.count {
                         let pageId = notebookViewModel.notebook.pages[notebookViewModel.currentPageIndex].id
                         scrollProxy.scrollTo(pageId, anchor: .top)
                     }
                 }
-                .onChange(of: notebookViewModel.notebook.pages.map(\.id)) { _, pageIDs in
-                    pageViewModelCache.prune(keeping: Set(pageIDs))
+                .onChange(of: notebookViewModel.notebook.pages.map(\.id)) { _, _ in
+                    prunePageViewModelCache()
+                }
+                .onChange(of: notebookViewModel.currentPageIndex) { _, _ in
+                    prunePageViewModelCache()
                 }
                 .onChange(of: notebookViewModel.programmaticScrollTarget) { _, target in
                     // Respond to programmatic scroll requests (e.g., after a PDF import).
@@ -89,6 +93,19 @@ struct ContinuousPageView: View {
         }
         .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func prunePageViewModelCache() {
+        pageViewModelCache.prune(keeping: retainedPageIDs(around: notebookViewModel.currentPageIndex))
+    }
+
+    private func retainedPageIDs(around centerIndex: Int) -> Set<UUID> {
+        let pages = notebookViewModel.notebook.pages
+        guard !pages.isEmpty else { return [] }
+        let clampedCenterIndex = min(max(centerIndex, 0), pages.count - 1)
+        let lowerBound = max(0, clampedCenterIndex - cacheRetainRadius)
+        let upperBound = min(pages.count - 1, clampedCenterIndex + cacheRetainRadius)
+        return Set((lowerBound...upperBound).map { pages[$0].id })
     }
 }
 
