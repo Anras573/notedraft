@@ -10,7 +10,7 @@ import PencilKit
 
 struct ContinuousPageView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
-    @State private var pageViewModelCache = ContinuousPageViewModelCache()
+    @State private var pageViewModelCache = PageViewModelCache()
     private let cacheRetainRadius = 1
     
     private var navigationTitleText: String {
@@ -122,29 +122,6 @@ struct PageDivider: View {
         }
         .padding(.vertical, 8)
         .background(Color(UIColor.systemGroupedBackground))
-    }
-}
-
-@MainActor
-private final class ContinuousPageViewModelCache {
-    private var cache: [UUID: PageViewModel] = [:]
-
-    func viewModel(for page: Page, notebookViewModel: NotebookViewModel) -> PageViewModel {
-        if let existing = cache[page.id] {
-            return existing
-        }
-
-        let created = notebookViewModel.createPageViewModel(for: page)
-        cache[page.id] = created
-        return created
-    }
-
-    func prune(keeping validPageIDs: Set<UUID>) {
-        cache = cache.filter { validPageIDs.contains($0.key) }
-    }
-
-    func clear() {
-        cache.removeAll()
     }
 }
 
