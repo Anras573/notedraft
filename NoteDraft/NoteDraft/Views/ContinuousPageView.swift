@@ -10,6 +10,8 @@ import PencilKit
 
 struct ContinuousPageView: View {
     @ObservedObject var notebookViewModel: NotebookViewModel
+    @State private var pageViewModelCache = PageViewModelCache()
+    private let cacheRetainRadius = 1
     
     private var navigationTitleText: String {
         guard !notebookViewModel.notebook.pages.isEmpty else {
@@ -26,7 +28,7 @@ struct ContinuousPageView: View {
                         ForEach(Array(notebookViewModel.notebook.pages.enumerated()), id: \.element.id) { index, page in
                             GeometryReader { pageGeometry in
                                 PageContentView(
-                                    viewModel: notebookViewModel.createPageViewModel(for: page),
+                                    viewModel: pageViewModelCache.viewModel(for: page, notebookViewModel: notebookViewModel),
                                     pageNumber: index + 1
                                 )
                                 .onChange(of: pageGeometry.frame(in: .named("scroll")).minY) { oldValue, newValue in
@@ -56,11 +58,18 @@ struct ContinuousPageView: View {
                 }
                 .coordinateSpace(name: "scroll")
                 .onAppear {
+                    prunePageViewModelCache()
                     // Scroll to the saved page position when view appears
                     if notebookViewModel.currentPageIndex >= 0 && notebookViewModel.currentPageIndex < notebookViewModel.notebook.pages.count {
                         let pageId = notebookViewModel.notebook.pages[notebookViewModel.currentPageIndex].id
                         scrollProxy.scrollTo(pageId, anchor: .top)
                     }
+                }
+                .onChange(of: notebookViewModel.notebook.pages.map(\.id)) { _, _ in
+                    prunePageViewModelCache()
+                }
+                .onChange(of: notebookViewModel.currentPageIndex) { _, _ in
+                    prunePageViewModelCache()
                 }
                 .onChange(of: notebookViewModel.programmaticScrollTarget) { _, target in
                     // Respond to programmatic scroll requests (e.g., after a PDF import).
@@ -79,8 +88,24 @@ struct ContinuousPageView: View {
                 }
             }
         }
+        .onDisappear {
+            pageViewModelCache.clear()
+        }
         .navigationTitle(navigationTitleText)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func prunePageViewModelCache() {
+        pageViewModelCache.prune(keeping: retainedPageIDs(around: notebookViewModel.currentPageIndex))
+    }
+
+    private func retainedPageIDs(around centerIndex: Int) -> Set<UUID> {
+        let pages = notebookViewModel.notebook.pages
+        guard !pages.isEmpty else { return [] }
+        let clampedCenterIndex = min(max(centerIndex, 0), pages.count - 1)
+        let lowerBound = max(0, clampedCenterIndex - cacheRetainRadius)
+        let upperBound = min(pages.count - 1, clampedCenterIndex + cacheRetainRadius)
+        return Set((lowerBound...upperBound).map { pages[$0].id })
     }
 }
 
